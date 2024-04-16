@@ -17,7 +17,8 @@ def vae_loss(x, x_out, mu, logvar, true_prop, pred_prop, weights, self, beta=1):
         if "decision_tree" in self.params["type_pp"]:            
             bce_prop=torch.tensor(0.)
         else: 
-            bce_prop = F.binary_cross_entropy(pred_prop.squeeze(-1), true_prop)
+            bce_prop = F.binary_cross_entropy(pred_prop.squeeze(-1)[~torch.isnan(true_prop)], true_prop[~torch.isnan(true_prop)])
+            #bce_prop = F.cross_entropy(pred_prop.squeeze(-1)[~torch.isnan(true_prop)], true_prop[~torch.isnan(true_prop)])
     else:
         bce_prop = torch.tensor(0.)
     if torch.isnan(KLD):
@@ -37,7 +38,8 @@ def trans_vae_loss(x, x_out, mu, logvar, true_len, pred_len, true_prop, pred_pro
         if "decision_tree" in self.params["type_pp"]:
             print(pred_prop)
         else: 
-            bce_prop = F.binary_cross_entropy(pred_prop.squeeze(-1), true_prop)
+            #bce_prop = F.binary_cross_entropy(pred_prop.squeeze(-1), true_prop)
+            bce_prop = F.cross_entropy(pred_prop.squeeze(-1), true_prop)
     else:
         bce_prop = torch.tensor(0.)
     if torch.isnan(KLD):

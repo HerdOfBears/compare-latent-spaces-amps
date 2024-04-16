@@ -42,4 +42,4 @@ MINOR = _version_minor
 MICRO = _version_micro
 VERSION = __version__
 PACKAGE_DATA = {'TransVAE': [pjoin('data', '*')]}
-REQUIRES = ['pandas', 'numpy', 'torch', 'seaborn', 'matplotlib', 'scipy', 'scikit-learn']
+REQUIRES = ['pandas', 'numpy', 'torch', 'matplotlib', 'scipy', 'scikit-learn']

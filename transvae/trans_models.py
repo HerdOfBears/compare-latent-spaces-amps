@@ -284,6 +284,8 @@ class VAEShell():
                         
                     if self.model_type == 'rnn' or self.model_type =='rnn_attn':
                         x_out, mu, logvar, pred_prop = self.model(src, tgt, true_prop, src_mask, tgt_mask)
+                        #with open("trials/property_predictor_output.txt","a") as fpp:
+                        #    fpp.write(f"pred_prop = {pred_prop}\n")
                         loss, bce, kld, prop_bce = vae_loss(src, x_out, mu, logvar,
                                                                   true_prop, pred_prop,
                                                                   self.params['CHAR_WEIGHTS'], self,

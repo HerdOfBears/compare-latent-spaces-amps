@@ -22,9 +22,17 @@ def vae_data_gen(data, max_len=126, name=None, props=None, char_dict=None):
     seq_list = data[:,0] #unpackage the smiles: mols is a list of lists of smiles (lists of characters) 
     if props is None:
         props = np.zeros(seq_list.shape)
+    else:
+        props = props.astype(int)
+        n_props = len(props)
+        n_seqs  = len(seq_list)
+        n_prop_outputs = props.shape[1]
+        if len(props) < len(seq_list):
+            _extender = np.array([np.nan]*((n_seqs-n_props)*n_prop_outputs)).reshape(-1,n_prop_outputs)
+            props = np.concatenate((props, _extender), axis=0)
     del data
     condn1 = (not name == None)
-    condn2 = ("peptide" in name.split("_"))
+    condn2 = ("peptide" in name)
     if condn1 and condn2:  #separate sequence into list of chars e.g. 'CC1c2'-->['C''C''1''c''2']
         seq_list = [peptide_tokenizer(x) for x in seq_list]     #use peptide_tokenizer                  
     else: 
