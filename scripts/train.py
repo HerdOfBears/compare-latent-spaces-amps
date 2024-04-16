@@ -26,7 +26,7 @@ def train(args):
     else:
         args.DDP=False
     if 'ON' in args.property_predictor:
-        property_predictor= True
+        args.property_predictor= True
     else: 
         args.property_predictor = False
     ### Build params dict from the parsed arguments
