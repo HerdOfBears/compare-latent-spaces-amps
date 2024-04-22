@@ -38,7 +38,7 @@ def vae_data_gen(data, max_len=126, name=None, props=None, char_dict=None):
         seq_list = [peptide_tokenizer(x) for x in seq_list]     #use peptide_tokenizer                  
     else: 
         seq_list = [tokenizer(x) for x in seq_list] 
-    encoded_data = torch.empty((len(seq_list), max_len+2)) #empty tensor: (length of entire input data, max_seq_len + 2->{start & end})
+    encoded_data = torch.empty((len(seq_list), max_len+1 + n_prop_outputs )) #empty tensor: (length of entire input data, max_seq_len + 2->{start & end})
     for j, seq in enumerate(seq_list):
         encoded_seq = encode_seq(seq, max_len, char_dict) #encode_smiles(smile,max_len,char_dict): char dict has format {"char":"number"}
         encoded_seq = [0] + encoded_seq
