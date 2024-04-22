@@ -67,7 +67,7 @@ def train_parser():
     parser.add_argument('--depth_property_predictor', default=2, type=int)
     parser.add_argument('--type_property_predictor', choices=['decision_tree', 'deep_net'], default='deep_net', type=str)
     parser.add_argument('--d_pp_out', default=1, type=int, help='Number of output dimensions for property predictor')
-    parser.add_argument('--prediction_types', default=None, type=list, 
+    parser.add_argument('--prediction_types', nargs="+", default=None, type=list, 
                         help='List of prediction types for property predictor.\n\
                             Must be list of "classification" and/or "regression"\
                             in the same order as the properties in the properties file')
