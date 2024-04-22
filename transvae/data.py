@@ -22,8 +22,9 @@ def vae_data_gen(data, max_len=126, name=None, props=None, char_dict=None):
     seq_list = data[:,0] #unpackage the smiles: mols is a list of lists of smiles (lists of characters) 
     if props is None:
         props = np.zeros(seq_list.shape)
+        n_prop_outputs = 1
     else:
-        props = props.astype(int)
+        # props = props.astype(int)
         n_props = len(props)
         n_seqs  = len(seq_list)
         n_prop_outputs = props.shape[1]
@@ -41,8 +42,8 @@ def vae_data_gen(data, max_len=126, name=None, props=None, char_dict=None):
     for j, seq in enumerate(seq_list):
         encoded_seq = encode_seq(seq, max_len, char_dict) #encode_smiles(smile,max_len,char_dict): char dict has format {"char":"number"}
         encoded_seq = [0] + encoded_seq
-        encoded_data[j,:-1] = torch.tensor(encoded_seq)
-        encoded_data[j,-1] = torch.tensor(props[j])
+        encoded_data[j,               :-n_prop_outputs] = torch.tensor(encoded_seq)
+        encoded_data[j,-n_prop_outputs:               ] = torch.tensor(props[j,:])
     return encoded_data
 
 def make_std_mask(tgt, pad):
