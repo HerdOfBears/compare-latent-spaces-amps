@@ -166,8 +166,8 @@ class VAEShell():
         torch.backends.cudnn.benchmark = True #optimize run-time for fixed model input size
         
         ### Prepare data iterators
-        train_data = vae_data_gen(train_mols,self.src_len, self.name, train_props, char_dict=self.params['CHAR_DICT'])
-        val_data = vae_data_gen(val_mols, self.src_len, self.name, val_props, char_dict=self.params['CHAR_DICT'])
+        train_data = vae_data_gen(train_mols, self.src_len, self.name, train_props, char_dict=self.params['CHAR_DICT'])
+        val_data   = vae_data_gen(  val_mols, self.src_len, self.name,   val_props, char_dict=self.params['CHAR_DICT'])
         
         #SPECIAL DATA INPUT FOR DDP
         if self.params['DDP']:
@@ -247,13 +247,13 @@ class VAEShell():
                 
                 for i in range(self.params['BATCH_CHUNKS']):
                     batch_data = data[i*self.chunk_size:(i+1)*self.chunk_size,:]
-                    mols_data = batch_data[:,:-1]
-                    props_data = batch_data[:,-1]
+                    mols_data  = batch_data[:,                        :-self.params["d_pp_out"]]
+                    props_data = batch_data[:,-self.params["d_pp_out"]:                        ]
                     if 'gpu' in self.params['HARDWARE']:
                         mols_data = mols_data.cuda()
                         props_data = props_data.cuda()
                     src = Variable(mols_data).long()
-                    tgt = Variable(mols_data[:,:-1]).long()                 
+                    tgt = Variable(mols_data[:,:-self.params["d_pp_out"]]).long()                 
                     true_prop = Variable(props_data)
                     src_mask = (src != self.pad_idx).unsqueeze(-2) #true or false according to sequence length
                     tgt_mask = make_std_mask(tgt, self.pad_idx) #cascading true false masking [true false...] [true true false...] ...
@@ -351,13 +351,13 @@ class VAEShell():
                 start_run_time = perf_counter()
                 for i in range(self.params['BATCH_CHUNKS']):
                     batch_data = data[i*self.chunk_size:(i+1)*self.chunk_size,:]
-                    mols_data = batch_data[:,:-1]
-                    props_data = batch_data[:,-1]
+                    mols_data  = batch_data[:,                        :-self.params["d_pp_out"]]
+                    props_data = batch_data[:,-self.params["d_pp_out"]:                        ]
                     if 'gpu' in self.params['HARDWARE']:
                         mols_data = mols_data.cuda()
                         props_data = props_data.cuda()
                     src = Variable(mols_data).long()
-                    tgt = Variable(mols_data[:,:-1]).long()
+                    tgt = Variable(mols_data[:,:-self.params["d_pp_out"]]).long()
                     true_prop = Variable(props_data)
                     src_mask = (src != self.pad_idx).unsqueeze(-2)
                     tgt_mask = make_std_mask(tgt, self.pad_idx)
@@ -581,7 +581,7 @@ class VAEShell():
                     log_file.close()
                 for i in range(self.params['BATCH_CHUNKS']):
                     batch_data = data[i*self.chunk_size:(i+1)*self.chunk_size,:]
-                    mols_data = batch_data[:,:-1]
+                    mols_data = batch_data[:,:-self.params["d_pp_out"]]
                     src = Variable(mols_data).long()
                     src_mask = (src != self.pad_idx).unsqueeze(-2)
                     if 'gpu' in self.params['HARDWARE']:
@@ -696,8 +696,8 @@ class VAEShell():
                 log_file.close()
             for i in range(self.params['BATCH_CHUNKS']):
                 batch_data = data[i*self.chunk_size:(i+1)*self.chunk_size,:]
-                mols_data = batch_data[:,:-1]
-                props_data = batch_data[:,-1]
+                mols_data  = batch_data[:,                        :-self.params["d_pp_out"]]
+                props_data = batch_data[:,-self.params["d_pp_out"]:                        ]
                 if 'gpu' in self.params['HARDWARE']:
                     mols_data = mols_data.cuda()
                     props_data = props_data.cuda()
@@ -811,10 +811,12 @@ class Generator(nn.Module):
 
 class PropertyPredictor(nn.Module):
     "Optional property predictor module. Choice between: decision_tree and deep_net"
-    def __init__(self, d_pp, depth_pp, d_latent, type_pp):
+    def __init__(self, d_pp, depth_pp, d_latent, type_pp, d_pp_out=1, prediction_types=None):
         super().__init__()
         self.type_pp=type_pp
-        
+        self.d_pp_out = d_pp_out
+        self.prediction_types = prediction_types
+
         if "decision_tree" in self.type_pp:
             from sklearn.tree import DecisionTreeClassifier
             self.decision_tree = DecisionTreeClassifier(max_depth=depth_pp)
@@ -825,11 +827,22 @@ class PropertyPredictor(nn.Module):
                 if i == 0:
                     linear_layer = nn.Linear(d_latent, d_pp)
                 elif i == depth_pp - 1:
-                    linear_layer = nn.Linear(d_pp, 1)
+                    linear_layer = nn.Linear(d_pp, d_pp_out)
                 else:
                     linear_layer = nn.Linear(d_pp, d_pp)
                 prediction_layers.append(linear_layer)
             self.prediction_layers = ListModule(*prediction_layers)
+
+    def _last_layer_nn(self, x, prediction_layer):
+        condn1 = (self.prediction_types is None)
+        condn_all_class = ( set(self.prediction_types)==set(["classification"]) )
+        condn2 = (self.d_pp_out==1)
+        if condn1 and condn2: # one classification output
+            return torch.sigmoid(prediction_layer(x))
+        elif (condn1 or condn_all_class) and not condn2: # multiple classification outputs
+            return torch.softmax(prediction_layer(x), dim=-1)
+        else: # full regression output
+            return prediction_layer(x)
 
     def forward(self, x, true_prop):
         if "decision_tree" in self.type_pp:
@@ -837,10 +850,16 @@ class PropertyPredictor(nn.Module):
             self.decision_tree.fit(x.detach().numpy(), true_prop)
             print("N_classes:",self.decision_tree.n_classes_)
             x = self.decision_tree.predict_proba(x.detach().numpy()) #score on training data
-        else:
+        else: #using neural network
+            condn3 = (self.prediction_types is None)
             for idx, prediction_layer in enumerate(self.prediction_layers):
-                if idx == len(self.prediction_layers)-1:
-                    x = torch.sigmoid(prediction_layer(x))
+                condn1 = (idx == len(self.prediction_layers)-1)
+                condn2 = (self.d_pp_out == 1)
+                if condn1:
+                    if condn2:
+                        x = torch.sigmoid(prediction_layer(x))
+                    else:
+                        x = torch.softmax(prediction_layer(x), dim=-1)
                 else:
                     x = torch.relu(prediction_layer(x))
         return x

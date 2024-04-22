@@ -122,7 +122,7 @@ class RNN(VAEShell):
     def __init__(self, params={}, name=None, N=3, d_model=128,
                  d_latent=128, dropout=0.1, tf=True,
                  bypass_bottleneck=False, property_predictor=False,
-                 d_pp=256, depth_pp=2, type_pp='deep_net', load_fn=None):
+                 d_pp=256, depth_pp=2, type_pp='deep_net', load_fn=None, workaround=None):
         super().__init__(params, name)
         ### Set learning rate for Adam optimizer
         if 'ADAM_LR' not in self.params.keys():
@@ -151,7 +151,7 @@ class RNN(VAEShell):
             else:
                 self.build_model()
         else:
-            self.load(load_fn)
+            self.load(load_fn, workaround=workaround)
 
     def build_model(self):
         """
@@ -169,7 +169,7 @@ class RNN(VAEShell):
         tgt_embed = Embeddings(self.params['d_model'], self.vocab_size)
         if self.params['property_predictor']:
             property_predictor = PropertyPredictor(self.params['d_pp'], self.params['depth_pp'], self.params['d_latent'],
-                                                  self.params['type_pp'])
+                                                  self.params['type_pp'], self.params["d_pp_out"], self.params["prediction_types"])
         else:
             property_predictor = None
         self.model = RNNEncoderDecoder(encoder, decoder, src_embed,tgt_embed, generator,
