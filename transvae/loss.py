@@ -3,6 +3,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import math, copy, time
+
+import MDAnalysis as mda
+
 from torch.autograd import Variable
 
 def vae_loss(x, x_out, mu, logvar, true_prop, pred_prop, weights, self, beta=1):
@@ -17,7 +20,28 @@ def vae_loss(x, x_out, mu, logvar, true_prop, pred_prop, weights, self, beta=1):
         if "decision_tree" in self.params["type_pp"]:            
             bce_prop=torch.tensor(0.)
         else: 
-            bce_prop = F.binary_cross_entropy(pred_prop.squeeze(-1)[~torch.isnan(true_prop)], true_prop[~torch.isnan(true_prop)])
+            # check prediction types. 
+            # when None, assume binary classification
+            # when not None, loop through each prediction type
+            if (self.params["prediction_types"] is None):
+                bce_prop = F.binary_cross_entropy(
+                    pred_prop.squeeze(-1)[~torch.isnan(true_prop)], 
+                    true_prop[            ~torch.isnan(true_prop)]
+                )
+            else:
+                prop_tot = torch.tensor(0.0)
+                for i in range(pred_prop.shape[1]):
+                    if self.params["prediction_types"][i] == "classification":
+                        prop_tot += F.cross_entropy(
+                            pred_prop[:,i][~torch.isnan(true_prop[:,i])], 
+                            true_prop[:,i][~torch.isnan(true_prop[:,i])]
+                        )
+                    else:
+                        prop_tot += F.mse_loss(
+                            pred_prop[:,i][~torch.isnan(true_prop[:,i])], 
+                            true_prop[:,i][~torch.isnan(true_prop[:,i])]
+                        )
+                bce_prop = prop_tot
             #bce_prop = F.cross_entropy(pred_prop.squeeze(-1)[~torch.isnan(true_prop)], true_prop[~torch.isnan(true_prop)])
     else:
         bce_prop = torch.tensor(0.)
@@ -160,3 +184,62 @@ def im_kernel_sum(z1, z2, z_var, exclude_diag=True):
         kernel_sum -= kernel_matrix.diag().sum()
 
     return kernel_sum
+
+def deep_rmsd_isometry_loss(mu, x_structures, beta=1):
+    """
+    Deep Isometry Loss. 
+    Computes the difference in distance b/w latent space points 
+    and their corresponding inputted points' aligned rmsds. 
+
+    Parameters:
+    ----------
+        mu : torch.tensor
+             latent space points
+        x_structures : list
+                       list of inputted structures
+
+    Returns:
+    -------
+        loss : torch.tensor
+               difference in distance b/w latent space points 
+               and their corresponding inputted points' aligned rmsds
+    """
+    _total_n_pairs_to_use = len(mu) # total number might be very large, so use a random subset
+    # N choose 2 = N! / 2!(N-2)! = N(N-1)/2 = M
+    # N^2 - N = 2M
+    # N^2 - N - 2M = 0
+    # N = (1 + sqrt(1 + 8M))/2
+    _choose_n = (1 + np.sqrt(1 + 8*_total_n_pairs_to_use))/2
+    _choose_n = int(_choose_n)
+    idx = np.random.choice(len(mu), _choose_n, replace=False)
+    mu_subset            =           mu[idx]
+    x_structures_subset  = x_structures[idx]
+
+    # compute pairwise distances in the latent space using mu_subset
+    # https://pytorch.org/docs/stable/generated/torch.cdist.html
+    _pairwise_distances = torch.cdist(mu_subset, mu_subset, p=2)
+
+    # using mdanalysis, compute RMSD between x_structures_subset
+    # https://docs.mdanalysis.org/stable/documentation_pages/analysis/rms.html
+    _rmsds = []
+    for i in range(len(x_structures_subset)):
+        for j in range(i+1, len(x_structures_subset)):
+            _uni1 = mda.Universe(x_structures_subset[i])
+            _uni2 = mda.Universe(x_structures_subset[j])
+            _rmsds.append(
+                mda.analysis.rms.rmsd(
+                    _uni1.select_atoms("backbone"),
+                    _uni2.select_atoms("backbone")
+                )
+            )
+
+    # compute difference between pairwise distances and rmsds
+    _pairwise_distances = _pairwise_distances.flatten()
+    _rmsds = torch.tensor(_rmsds).flatten()
+    _diff  = torch.abs(_pairwise_distances - _rmsds)
+    loss   = torch.mean(_diff)
+
+    return loss
+
+def triplet_loss():
+    pass
