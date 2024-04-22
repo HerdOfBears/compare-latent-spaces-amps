@@ -60,7 +60,7 @@ def train(args):
         "ERROR: Must specify files with train/test properties if training a property predictor"
         train_props = pd.read_csv(args.train_props_path).to_numpy()
         test_props = pd.read_csv(args.test_props_path).to_numpy()
-
+        
         if (args.prediction_types is None) or (set(args.prediction_types) == set(["classification"])):
             train_props = train_props.astype(int)
             test_props  =  test_props.astype(int)
@@ -94,4 +94,16 @@ if __name__ == '__main__':
     print("main function called /n")
     parser = train_parser()
     args = parser.parse_args()
+    
+    # quick fix of parser bug. parsing prediction_types as a list of strings rather than a list of characters
+    if args.prediction_types is not None:
+        fixed_prediction_types = []
+        if isinstance(args.prediction_types[0],list):
+            for l in args.prediction_types:
+                fixed_prediction_types.append("".join(l))
+        elif isinstance(args.prediction_types[0],str):
+            fixed_prediction_types = ["".join(args.prediction_types)]
+        else:
+            raise ValueError("prediction_types must be a list of strings or a list of lists of characters")
+        args.prediction_types = fixed_prediction_types
     train(args)
