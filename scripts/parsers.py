@@ -66,6 +66,11 @@ def train_parser():
     parser.add_argument('--d_property_predictor', default=2, type=int)
     parser.add_argument('--depth_property_predictor', default=2, type=int)
     parser.add_argument('--type_property_predictor', choices=['decision_tree', 'deep_net'], default='deep_net', type=str)
+    parser.add_argument('--d_pp_out', default=1, type=int, help='Number of output dimensions for property predictor')
+    parser.add_argument('--prediction_types', default=None, type=list, 
+                        help='List of prediction types for property predictor.\n\
+                            Must be list of "classification" and/or "regression"\
+                            in the same order as the properties in the properties file')
     parser.add_argument('--hardware', choices=['cpu', 'gpu'], required=True, type=str)
     ### Hyperparameters
     parser.add_argument('--batch_size', default=2000, type=int)
@@ -87,13 +92,15 @@ def train_parser():
     parser.add_argument('--test_props_path', default=None, type=str)
     parser.add_argument('--vocab_path', default=None, type=str)
     parser.add_argument('--char_weights_path', default=None, type=str)
+    
     ### Load Parameters
     parser.add_argument('--checkpoint', default=None, type=str)
+    
     ### Save Parameters
     parser.add_argument('--save_name', default=None, type=str)
     parser.add_argument('--save_freq', default=1, type=int)
+    
     ### Distributed Data Parallel addition
-
     parser.add_argument('--init_method', default=None, type=str)
     parser.add_argument('--dist_backend', default='nccl', type=str)
     parser.add_argument('--world_size', default=1, type=int)
@@ -104,6 +111,10 @@ def train_parser():
     """AAE Arguments"""
     parser.add_argument('--discriminator_layers', nargs='+', type=int, default=[640, 256], 
                         help='Numbers of features for linear layers in discriminator')
+
+    # loss method Parameters. Isometric learning or Triplet Loss for metric learning experiments.
+    parser.add_argument('--loss_method', choices=["isometry","triplet"], default=None, type=str, 
+                        help="additional loss method to include. Default is None. Choices are isometry and triplet")
 
     return parser
 

@@ -46,7 +46,11 @@ def train(args):
               'DISTRIBUTED': args.distributed,
               'NUM_WORKERS': args.num_workers,
               'DDP': args.DDP,
-              'DISCRIMINATOR_LAYERS' : args.discriminator_layers}
+              'DISCRIMINATOR_LAYERS' : args.discriminator_layers,
+              'LOSS_METHOD': args.loss_method,
+              'd_pp_out': args.d_pp_out,
+              'prediction_types': args.prediction_types,          
+    }
 
     ### Load data, vocab and token weights
     train_mols = pd.read_csv('data/{}_train.txt'.format(args.data_source)).to_numpy()
@@ -56,6 +60,10 @@ def train(args):
         "ERROR: Must specify files with train/test properties if training a property predictor"
         train_props = pd.read_csv(args.train_props_path).to_numpy()
         test_props = pd.read_csv(args.test_props_path).to_numpy()
+
+        if (args.property_types is None) or (set(args.property_types) == set(["classification"])):
+            train_props = train_props.astype(int)
+            test_props  =  test_props.astype(int)
     else:
         train_props = None
         test_props = None
