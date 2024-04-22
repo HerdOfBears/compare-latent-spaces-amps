@@ -64,6 +64,10 @@ def train(args):
         if (args.prediction_types is None) or (set(args.prediction_types) == set(["classification"])):
             train_props = train_props.astype(int)
             test_props  =  test_props.astype(int)
+        
+        # raise error if number of properties in properties file does not match d_pp_out
+        if train_props.shape[1] != args.d_pp_out:
+            raise ValueError(f"Number of properties in properties file {train_props.shape[1]} does not match d_pp_out ({args.d_pp_out}) ")
     else:
         train_props = None
         test_props = None
