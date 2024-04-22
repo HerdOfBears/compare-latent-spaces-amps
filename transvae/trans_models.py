@@ -250,10 +250,11 @@ class VAEShell():
                     mols_data  = batch_data[:,                        :-self.params["d_pp_out"]]
                     props_data = batch_data[:,-self.params["d_pp_out"]:                        ]
                     if 'gpu' in self.params['HARDWARE']:
-                        mols_data  = mols_data.cuda()
+                        mols_data  =  mols_data.cuda()
                         props_data = props_data.cuda()
                     src = Variable(mols_data).long()
                     tgt = Variable(mols_data[:,:-1]).long()                 
+                    print(f"batch shape = {batch_data.shape} src shape = {src.shape} tgt shape = {tgt.shape} props shape = {props_data.shape} mols shape = {mols_data.shape}")
                     true_prop = Variable(props_data)
                     src_mask = (src != self.pad_idx).unsqueeze(-2) #true or false according to sequence length
                     tgt_mask = make_std_mask(tgt, self.pad_idx) #cascading true false masking [true false...] [true true false...] ...
