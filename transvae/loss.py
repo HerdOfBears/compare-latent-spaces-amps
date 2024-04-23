@@ -43,7 +43,7 @@ def vae_loss(x, x_out, mu, logvar, true_prop, pred_prop, weights, self, beta=1):
                             true_prop[:,i][~torch.isnan(true_prop[:,i])]
                         )
                         prop_losses.append( _prop_loss )
-                bce_prop = torch.sum(torch.stack(prop_losses)
+                bce_prop = torch.sum(torch.stack(prop_losses))
             #bce_prop = F.cross_entropy(pred_prop.squeeze(-1)[~torch.isnan(true_prop)], true_prop[~torch.isnan(true_prop)])
     else:
         bce_prop = torch.tensor(0.)
