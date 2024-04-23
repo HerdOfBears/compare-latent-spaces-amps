@@ -836,11 +836,14 @@ class PropertyPredictor(nn.Module):
     def _last_layer_nn(self, x, prediction_layer):
         condn1 = (self.prediction_types is None)
         condn_all_class = ( set(self.prediction_types)==set(["classification"]) )
+        condn_all_regre = ( set(self.prediction_types)==set(["regression"]) )
         condn2 = (self.d_pp_out==1)
-        if condn1 and condn2: # one classification output
+        if (condn1 or condn_all_class) and condn2: # one classification output
             return torch.sigmoid(prediction_layer(x))
         elif (condn1 or condn_all_class) and not condn2: # multiple classification outputs
             return torch.softmax(prediction_layer(x), dim=-1)
+        elif condn_all_regre: # full regression output
+            return prediction_layer(x)
         else: # full regression output
             return prediction_layer(x)
 
@@ -854,12 +857,8 @@ class PropertyPredictor(nn.Module):
             condn3 = (self.prediction_types is None)
             for idx, prediction_layer in enumerate(self.prediction_layers):
                 condn1 = (idx == len(self.prediction_layers)-1)
-                condn2 = (self.d_pp_out == 1)
                 if condn1:
-                    if condn2:
-                        x = torch.sigmoid(prediction_layer(x))
-                    else:
-                        x = torch.softmax(prediction_layer(x), dim=-1)
+                    x = self._last_layer_nn(x, prediction_layer)
                 else:
                     x = torch.relu(prediction_layer(x))
         return x
