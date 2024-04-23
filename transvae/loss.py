@@ -29,19 +29,21 @@ def vae_loss(x, x_out, mu, logvar, true_prop, pred_prop, weights, self, beta=1):
                     true_prop[            ~torch.isnan(true_prop)]
                 )
             else:
-                prop_tot = torch.tensor(0.0)
+                prop_losses = []
                 for i in range(pred_prop.shape[1]):
                     if self.params["prediction_types"][i] == "classification":
-                        prop_tot += F.cross_entropy(
+                        _prop_loss = F.cross_entropy(
                             pred_prop[:,i][~torch.isnan(true_prop[:,i])], 
                             true_prop[:,i][~torch.isnan(true_prop[:,i])]
                         )
+                        prop_losses.append( _prop_loss )
                     else:
-                        prop_tot += F.mse_loss(
+                        _prop_loss = F.mse_loss(
                             pred_prop[:,i][~torch.isnan(true_prop[:,i])], 
                             true_prop[:,i][~torch.isnan(true_prop[:,i])]
                         )
-                bce_prop = prop_tot
+                        prop_losses.append( _prop_loss )
+                bce_prop = torch.sum(prop_losses)
             #bce_prop = F.cross_entropy(pred_prop.squeeze(-1)[~torch.isnan(true_prop)], true_prop[~torch.isnan(true_prop)])
     else:
         bce_prop = torch.tensor(0.)
