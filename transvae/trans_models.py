@@ -358,7 +358,7 @@ class VAEShell():
                         mols_data = mols_data.cuda()
                         props_data = props_data.cuda()
                     src = Variable(mols_data).long()
-                    tgt = Variable(mols_data[:,:-self.params["d_pp_out"]]).long()
+                    tgt = Variable(mols_data[:,:-1]).long()
                     true_prop = Variable(props_data)
                     src_mask = (src != self.pad_idx).unsqueeze(-2)
                     tgt_mask = make_std_mask(tgt, self.pad_idx)
