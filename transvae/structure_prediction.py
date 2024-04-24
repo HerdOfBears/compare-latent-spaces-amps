@@ -56,11 +56,12 @@ if __name__ == "__main__":
     x_structures_subset = []
     with torch.no_grad():
         for i, seq in enumerate(sequences):
-            outputs = model.infer_pdb(seq)
+            # outputs = model.infer_pdb(seq)
+            outputs = model.infer(seq)
             x_structures_subset.append(outputs)
 
     print("=====================================")
-    print(x_structures_subset[0])
+    print(x_structures_subset[0].keys())
     print("=====================================")
 
     print(f"computing rmsds")
@@ -68,8 +69,8 @@ if __name__ == "__main__":
     for i in range(len(x_structures_subset)):
         print(f"comparing {i} to other structures")
         for j in range(i+1, len(x_structures_subset)):
-            _uni1 = mda.Universe(x_structures_subset[i])
-            _uni2 = mda.Universe(x_structures_subset[j])
+            _uni1 = mda.Universe(x_structures_subset[i].positions)
+            _uni2 = mda.Universe(x_structures_subset[j].positions)
             _rmsds.append(
                 mda.analysis.rms.rmsd(
                     _uni1.select_atoms("backbone"),
