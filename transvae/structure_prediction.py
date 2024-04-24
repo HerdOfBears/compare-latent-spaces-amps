@@ -7,8 +7,8 @@ import os
 
 import MDAnalysis as mda
 
-def sequence_to_pdb_esm(sequence:str):
-    model_path = "./transvae/esmfold_v1/"
+def sequence_to_pdb_esm(sequence:str, model_path:str=None):
+    # model_path = "./transvae/esmfold_v1/"
     if not os.path.isdir( os.path.join(os.getcwd(),model_path) ):
         raise Exception("""Model path does not exist: {}\n
                         current directory is: {}""".format(model_path, os.getcwd())
@@ -33,10 +33,12 @@ def sequence_to_pdb_esm(sequence:str):
 
 if __name__ == "__main__":
 
+    model_path = "./esmfold_v1/"
+
     x_structures_subset = []
     sequences = []
     for i, seq in enumerate(sequences):
-        outputs = sequence_to_pdb_esm(seq)
+        outputs = sequence_to_pdb_esm(seq, model_path=model_path)
         x_structures_subset.append(outputs)
 
     _rmsds = []
