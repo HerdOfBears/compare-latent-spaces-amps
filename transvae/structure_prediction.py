@@ -41,12 +41,29 @@ if __name__ == "__main__":
     
     sequences = df["peptides"].tolist()
 
-    x_structures_subset = []
-    sequences = []
-    for i, seq in enumerate(sequences):
-        outputs = sequence_to_pdb_esm(seq, model_path=model_path)
-        x_structures_subset.append(outputs)
+    model = EsmForProteinFolding.from_pretrained(
+                        model_path,
+                        local_files_only=True
+    )
+    tokenizer = AutoTokenizer.from_pretrained(
+                        model_path,
+                        local_files_only=True
+    )
+    print("model and tokenizer loaded")
 
+    # inputs = tokenizer([sequence], return_tensors="pt", add_special_tokens=False)
+    print('inference')
+    x_structures_subset = []
+    with torch.no_grad():
+        for i, seq in enumerate(sequences):
+            outputs = model.infer_pdb(seq)
+            x_structures_subset.append(outputs)
+
+    print("=====================================")
+    print(x_structures_subset[0])
+    print("=====================================")
+
+    print(f"computing rmsds")
     _rmsds = []
     for i in range(len(x_structures_subset)):
         print(f"comparing {i} to other structures")
