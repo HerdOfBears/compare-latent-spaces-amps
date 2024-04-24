@@ -1,11 +1,12 @@
-from transformers import AutoTokenizer, EsmForProteinFolding
 import numpy as np
 import torch
+import pandas as pd
+import MDAnalysis as mda
 
 import logging
 import os
 
-import MDAnalysis as mda
+from transformers import AutoTokenizer, EsmForProteinFolding
 
 def sequence_to_pdb_esm(sequence:str, model_path:str=None):
     # model_path = "./transvae/esmfold_v1/"
@@ -34,6 +35,11 @@ def sequence_to_pdb_esm(sequence:str, model_path:str=None):
 if __name__ == "__main__":
 
     model_path = "./esmfold_v1/"
+
+    df = pd.read_csv("peptides_2024_train.txt")
+    df = df.sample(10)
+    
+    sequences = df["peptides"].tolist()
 
     x_structures_subset = []
     sequences = []
