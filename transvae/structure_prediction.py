@@ -62,6 +62,8 @@ if __name__ == "__main__":
 
     print("=====================================")
     print(x_structures_subset[0].keys())
+    print('n residues  = ',len(x_structures_subset[0]["residue_index"]))
+    print('n positions = ',len(x_structures_subset[0]["positions"]))
     print("=====================================")
 
     print(f"computing rmsds")
@@ -69,13 +71,18 @@ if __name__ == "__main__":
     for i in range(len(x_structures_subset)):
         print(f"comparing {i} to other structures")
         for j in range(i+1, len(x_structures_subset)):
-            _uni1 = mda.Universe(x_structures_subset[i].positions)
-            _uni2 = mda.Universe(x_structures_subset[j].positions)
+            # _uni1 = mda.Universe(x_structures_subset[i].positions)
+            # _uni2 = mda.Universe(x_structures_subset[j].positions)
             _rmsds.append(
                 mda.analysis.rms.rmsd(
-                    _uni1.select_atoms("backbone"),
-                    _uni2.select_atoms("backbone")
+                    x_structures_subset[i].positions,
+                    x_structures_subset[j].positions,
+                    superposition=True
                 )
             )
+                # mda.analysis.rms.rmsd(
+                #     _uni1.select_atoms("backbone"),
+                #     _uni2.select_atoms("backbone")
+                # )
     
     print(_rmsds)
