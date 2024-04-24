@@ -36,7 +36,7 @@ if __name__ == "__main__":
 
     model_path = "./esmfold_v1/"
 
-    df = pd.read_csv("peptides_2024_train.txt")
+    df = pd.read_csv("data/peptides_2024_train.txt")
     df = df.sample(10)
     
     sequences = df["peptides"].tolist()
