@@ -112,6 +112,12 @@ def train_parser():
     parser.add_argument('--discriminator_layers', nargs='+', type=int, default=[640, 256], 
                         help='Numbers of features for linear layers in discriminator')
 
+    # whether to use structure model
+    parser.add_argument("--use_structure_loss", choices=["yes","no"], default="no", type=str,
+                        help="Whether to use structure model for additional loss")
+    parser.add_argument("--structure_model_path", type=str, default=None, 
+                        help="Path to directory containing structure model weights")
+
     # loss method Parameters. Isometric learning or Triplet Loss for metric learning experiments.
     parser.add_argument('--loss_method', choices=["isometry","triplet"], default=None, type=str, 
                         help="additional loss method to include. Default is None. Choices are isometry and triplet")
