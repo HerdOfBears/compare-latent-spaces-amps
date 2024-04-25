@@ -50,11 +50,9 @@ def batch_sequence_to_pdb(sequences:list[str], model_path:str) -> list[str]:
 
     structures_pdbs = []
     with torch.no_grad():
-        t0 = time.time()
         for i, seq in enumerate(sequences):
             outputs = model.infer_pdb(seq)
             structures_pdbs.append(outputs)
-        print(f"Time taken for {len(sequences)}: {time.time()-t0:.2f}s")
 
     return structures_pdbs
 
@@ -128,6 +126,85 @@ def biostructure_to_rmsds(biostructures:list[Bio.PDB.Structure])->np.ndarray:
             )
     rmsds = np.array(rmsds).reshape(-1,1)
     return rmsds
+
+
+class StructurePredictor:
+    def __init__(self, model_path:str):
+        self.model_path = model_path
+        self.model = EsmForProteinFolding.from_pretrained(
+                        model_path,
+                        local_files_only=True
+        )
+
+    def predict_structures(self, sequences:list[str]) -> list[str]:
+        """
+        Using ESMFold, takes a list of amino acid sequences and returns a list of strings, 
+        where each string is the content of a PDB file representing the predicted structure 
+        of the input sequence.
+
+        Parameters
+        ----------
+        sequences : list[str]
+            list of sequences to predict the structure of
+
+        Returns
+        -------
+        structures_pdbs: list[str]
+            each string is the content of a PDB file representing the 
+            predicted structure
+        """
+
+        if not isinstance(sequences, list):
+            sequences = list(sequences)
+            
+        logging.info("Loading model...")
+        structures_pdbs = []
+        with torch.no_grad():
+            for i, seq in enumerate(sequences):
+                outputs = self.model.infer_pdb(seq)
+                structures_pdbs.append(outputs)
+
+        return structures_pdbs
+
+    def pdb_to_biostructure(self, pdb_file_contents:str|list) -> list[Bio.PDB.Structure]:
+        """
+        takes a string or list of strings containing the contents of a PDB file. 
+        Returns a list of BioPython Bio.PDB.Structure objects representing the
+        input PDB files.
+        In particular, this assumes that the input PDB file contains a single string with newline characters.
+
+        Parameters
+        ----------
+        pdb_file_contents : str or list[str]
+            string or list of strings containing the contents of a PDB file(s)
+        
+        Returns
+        -------
+        structures : list[Bio.PDB.Structure]
+            list of BioPython Bio.PDB.Structure objects representing the input PDB files
+        """
+        parser = Bio.PDB.PDBParser(QUIET=True)
+
+        _inputs = None
+        if isinstance(pdb_file_contents, str):
+            _inputs = [pdb_file_contents]
+        else:
+            _inputs = pdb_file_contents
+
+        structures = []
+        for i, _pdb in enumerate(_inputs):
+            parser.structure_builder.init_structure(f"structure{i}")
+
+            parser._parse(_pdb.split("\n"))
+
+            parser.structure_builder.set_header(parser.header)
+
+            # Return the Structure instance
+            _structure = parser.structure_builder.get_structure()
+
+            structures.append(_structure)
+
+        return structures
 
 
 if __name__ == "__main__":
