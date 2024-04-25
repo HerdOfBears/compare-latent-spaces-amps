@@ -572,7 +572,7 @@ class VAEShell():
 
             self.model.eval()
             decoded_sequences = []
-            decoded_properties = torch.empty((data.shape[0],1))
+            decoded_properties = torch.empty((data.shape[0],self.params["d_pp_out"]))
             mems = torch.empty((data.shape[0], self.params['d_latent']))
             for j, data in enumerate(data_iter):
                 if log:
@@ -604,7 +604,7 @@ class VAEShell():
                     
                     ### grab the batch outputs and store them   
                     start = j*self.batch_size+i*self.chunk_size
-                    stop = j*self.batch_size+(i+1)*self.chunk_size
+                    stop  = j*self.batch_size+(i+1)*self.chunk_size
                     decoded_properties[start:stop] = props
                     mems[start:stop, :] = mem.detach().cpu()
                     
@@ -685,7 +685,7 @@ class VAEShell():
         self.batch_size = self.params['BATCH_SIZE']
         self.chunk_size = self.batch_size // self.params['BATCH_CHUNKS']
         mems = torch.empty((save_shape, self.params['d_latent'])).cpu()
-        mus = torch.empty((save_shape, self.params['d_latent'])).cpu()
+        mus  = torch.empty((save_shape, self.params['d_latent'])).cpu()
         logvars = torch.empty((save_shape, self.params['d_latent'])).cpu()
         self.model.eval()
 
