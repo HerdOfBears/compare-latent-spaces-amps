@@ -303,9 +303,10 @@ class VAEShell():
                         _choose_n = (1 + np.sqrt(1 + 8*_total_n_pairs_to_use))/2
                         _choose_n = int(_choose_n)
                         _idx = np.random.choice(len(mu), _choose_n, replace=False)
-                        mu_subset            =           mu[_idx]
+                        mu_subset            =        mu[_idx]
                         x_structures_subset  = mols_data[_idx]
-                        structures_pdbs  = structure_predictor.predict_structures(x_structures_subset) # FLAG: needs to be list[str] input
+                        x_structures_subset_seq = decode_seq(x_structures_subset, self.params['CHAR_DICT'])
+                        structures_pdbs  = structure_predictor.predict_structures(x_structures_subset_seq) 
                         biostructures = structure_predictor.pdb_to_biostructure(structures_pdbs)
                         rmsd_loss = deep_rmsd_isometry_loss(mu_subset, biostructures)
                         
@@ -450,7 +451,7 @@ class VAEShell():
                     avg_kld_losses.append(          kld.item())
                     avg_prop_bce_losses.append(prop_bce.item())
                     avg_rmsd_losses.append(   rmsd_loss.item())
-                    
+
                 stop_run_time = perf_counter()
                 run_time = round(stop_run_time - start_run_time, 5)
                 avg_loss = np.mean(avg_losses)
