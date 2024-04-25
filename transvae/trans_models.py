@@ -215,7 +215,7 @@ class VAEShell():
             log_file = open(log_fn, 'a')
             if not already_wrote:
                 log_file.write('epoch,batch_idx,data_type,tot_loss,recon_loss,pred_loss,'\
-                               'kld_loss,prop_bce_loss,disc_loss,mmd_loss,run_time\n')
+                               'kld_loss,prop_bce_loss,disc_loss,mmd_loss,rmsd_loss,run_time\n')
             log_file.close()
 
         ### Initialize Annealer
