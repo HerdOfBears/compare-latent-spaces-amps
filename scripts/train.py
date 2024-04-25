@@ -92,6 +92,7 @@ def train(args):
     # args.structure_model_path
     # args.structure_loss
     if "yes" in args.use_structure_loss:
+        print(f"Using structure model from {args.structure_model_path}")
         if args.hardware == "gpu":
             esmfold = StructurePredictor(args.structure_model_path, device="gpu")
         else:
