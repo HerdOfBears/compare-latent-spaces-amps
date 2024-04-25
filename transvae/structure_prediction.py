@@ -142,6 +142,8 @@ class StructurePredictor:
         if device in ["gpu", "cuda"]:
             print("Using GPU for structure prediction")
             self.model = self.model.cuda().requires_grad_(False)
+        else:
+            self.model = self.model.requires_grad_(False)
 
     def predict_structures(self, sequences:list[str]) -> list[str]:
         """
