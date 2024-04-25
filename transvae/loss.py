@@ -210,13 +210,21 @@ def deep_rmsd_isometry_loss(mu, x_structures, beta=1):
 
     # compute pairwise distances in the latent space using mu_subset
     # https://pytorch.org/docs/stable/generated/torch.cdist.html
-    _pairwise_distances = torch.cdist(mu, mu, p=2)
-    _flattened = []
-    for i in range(len(mu)):
-        for j in range(i+1,len(mu)):
-            _flattened.append(_pairwise_distances[i,j])
-    print("making pairwise distance tensor")
-    _pairwise_distances = torch.tensor(_flattened).flatten()
+    n = len(mu)
+    _pairwise_distances = torch.zeros((n*(n-1))//2, dtype=torch.float32)
+    idx = 0
+    for i in range(n):
+        for j in range(i+1, n):
+            _pairwise_distances[idx] = torch.dist(mu[i], mu[j], p=2)
+            idx += 1
+                                
+    # _pairwise_distances = torch.cdist(mu, mu, p=2)
+    # _flattened = []
+    # for i in range(len(mu)):
+    #     for j in range(i+1,len(mu)):
+    #         _flattened.append(_pairwise_distances[i,j])
+    # print("making pairwise distance tensor")
+    # _pairwise_distances = torch.tensor(_flattened).flatten()
 
     # compute pairwise rmsds between the structures
     _rmsds = biostructure_to_rmsds(x_structures)
@@ -224,7 +232,8 @@ def deep_rmsd_isometry_loss(mu, x_structures, beta=1):
         if _rmsds < 0: # then error
             return torch.tensor(0.)
     print("making rmsd tensor")
-    _rmsds = torch.tensor(_rmsds).flatten()
+    # _rmsds = torch.tensor(_rmsds).flatten()
+    _rmsds = torch.from_numpy(_rmsds).flatten()
 
     if len(_rmsds)!=len(_pairwise_distances):
         raise ValueError(f"Number of pairwise distances ({len(_pairwise_distances)}) and rmsds ({len(_rmsds)}) do not match")
