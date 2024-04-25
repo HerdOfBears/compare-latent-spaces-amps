@@ -1,6 +1,6 @@
 from __future__ import absolute_import, division, print_function
 #from .version import __version__  # noqa
-from . import data, loss, opt, rnn_models, trans_models, tvae_util, optimization
+from . import data, loss, opt, rnn_models, trans_models, tvae_util, structure_prediction#, optimization
 
 __all__ = ['data', 
            'loss', 
@@ -8,6 +8,6 @@ __all__ = ['data',
            'rnn_models', 
            'trans_models', 
            'tvae_util', 
-           'optimization',
+        #    'optimization',
            'structure_prediction'
 ]
