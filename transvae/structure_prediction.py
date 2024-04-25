@@ -116,6 +116,10 @@ def biostructure_to_rmsds(biostructures:list[Bio.PDB.Structure])->np.ndarray:
     
     rmsds = []
     N = len(biostructures)
+    if N < 2:
+        rmsds = np.zeros((1,1)) - 1 # rmsd can't be negative, so -1 indicates error
+        return rmsds
+    
     for i in range(N):
         aligner.set_reference(biostructures[i])
         for j in range(i+1, N):
@@ -164,6 +168,8 @@ class StructurePredictor:
         structures_pdbs = []
         with torch.no_grad():
             for i, seq in enumerate(sequences):
+                if len(seq)<10:
+                    continue
                 outputs = self.model.infer_pdb(seq)
                 structures_pdbs.append(outputs)
 
