@@ -164,6 +164,34 @@ def get_char_weights(train_smiles, params, freq_penalty=0.5):
 
 
 ####### POSTPROCESSING HELPERS ##########
+def decode_seq(encoded_seqs:torch.tensor, char_dict:dict)->list[str]:
+    """
+    Decodes tensor containing token ids into string
+    
+    Parameters:
+    ----------
+    encoded_seqs: torch.tensor, shape (Nseqs, N_embedding)
+        tensor containing token ids
+    char_dict: dict
+        dictionary mapping character to token id. 
+    
+    Returns:
+    -------
+    sequences: list[str]
+        list of decoded sequences; [str1, str2, ...]
+    """
+    inverse_char_dict = {v:k for k,v in char_dict.items()}
+    sequences = []
+    for i in range(len(encoded_seqs)):
+        encoded_seq = encoded_seqs[i].cpu().numpy()
+        seq = ''
+        for j in range(len(encoded_seq)):
+            seq += inverse_char_dict[encoded_seq[j]]
+        seq = seq.strip("<start>")
+        seq = seq.strip("_")
+        seq = seq.strip("<end>")
+        sequences.append(seq)
+    return sequences
 
 def decode_mols(encoded_tensors, org_dict):
     "Decodes tensor containing token ids into string"
