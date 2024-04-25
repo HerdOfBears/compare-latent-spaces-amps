@@ -129,12 +129,15 @@ def biostructure_to_rmsds(biostructures:list[Bio.PDB.Structure])->np.ndarray:
 
 
 class StructurePredictor:
-    def __init__(self, model_path:str):
+    def __init__(self, model_path:str, device="cpu"):
         self.model_path = model_path
         self.model = EsmForProteinFolding.from_pretrained(
                         model_path,
                         local_files_only=True
         )
+        if device in ["gpu", "cuda"]:
+            print("Using GPU for structure prediction")
+            self.model = self.model.cuda().requires_grad_(False)
 
     def predict_structures(self, sequences:list[str]) -> list[str]:
         """
