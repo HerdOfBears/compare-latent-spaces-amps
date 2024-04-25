@@ -14,7 +14,6 @@ from transvae import trans_models
 from transvae.transformer_models import TransVAE
 from transvae.rnn_models import RNN
 from transvae.tvae_util import *
-from transvae import analysis
 from scripts.parsers import model_init, train_parser
 
 from sklearn.decomposition import PCA
