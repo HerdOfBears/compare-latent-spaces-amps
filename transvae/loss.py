@@ -215,6 +215,7 @@ def deep_rmsd_isometry_loss(mu, x_structures, beta=1):
     for i in range(len(mu)):
         for j in range(i+1,len(mu)):
             _flattened.append(_pairwise_distances[i,j])
+    print("making pairwise distance tensor")
     _pairwise_distances = torch.tensor(_flattened).flatten()
 
     # compute pairwise rmsds between the structures
@@ -222,6 +223,7 @@ def deep_rmsd_isometry_loss(mu, x_structures, beta=1):
     if len(_rmsds) == 1:
         if _rmsds < 0: # then error
             return torch.tensor(0.)
+    print("making rmsd tensor")
     _rmsds = torch.tensor(_rmsds).flatten()
 
     if len(_rmsds)!=len(_pairwise_distances):

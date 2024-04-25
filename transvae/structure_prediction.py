@@ -128,7 +128,9 @@ def biostructure_to_rmsds(biostructures:list[Bio.PDB.Structure])->np.ndarray:
             rmsds.append(
                 aligner.rms
             )
+    print("creating numpy array:")
     rmsds = np.array(rmsds).reshape(-1,1)
+    print("created array")
     return rmsds
 
 
@@ -215,7 +217,7 @@ class StructurePredictor:
             _structure = parser.structure_builder.get_structure()
 
             structures.append(_structure)
-
+        print("finished making structures")
         return structures
 
 
