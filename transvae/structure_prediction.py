@@ -213,6 +213,11 @@ class StructurePredictor:
 if __name__ == "__main__":
 
     model_path = "./esmfold_v1/"
+    device = "cpu"
+    if torch.cuda.is_available():
+        device = "gpu"
+    print('using device:', device)
+    model = StructurePredictor(model_path, device=device)
 
     df = pd.read_csv("data/peptides_2024_train.txt")
     df = df.sample(10)
@@ -220,11 +225,13 @@ if __name__ == "__main__":
     sequences = df["peptides"].tolist()
 
     print("predicting structures...")
-    structures_pdbs = batch_sequence_to_pdb(sequences, model_path)
+    # structures_pdbs = batch_sequence_to_pdb(sequences, model_path)
+    structures_pdbs = model.predict_structures(sequences)
     print("done structure prediction")
 
     print("converting to BioPython structures...")
-    structures = pdb_to_biostructure(structures_pdbs)
+    # structures = pdb_to_biostructure(structures_pdbs)
+    structures = model.pdb_to_biostructure(structures_pdbs)
     print("done BioPython conversion")
 
     print("computing RMSDs...")
