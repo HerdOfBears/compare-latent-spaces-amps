@@ -12,7 +12,7 @@ from torch.autograd import Variable
 from transvae.tvae_util import *
 from transvae.opt import NoamOpt
 from transvae.data import vae_data_gen, make_std_mask
-from transvae.loss import vae_loss, trans_vae_loss, aae_loss, wae_loss
+from transvae.loss import vae_loss, trans_vae_loss, aae_loss, wae_loss, deep_rmsd_isometry_loss
 
 import torch.distributed as dist
 import torch.utils.data.distributed
@@ -144,7 +144,8 @@ class VAEShell():
             self.optimizer.load_state_dict(self.current_state['optimizer_state_dict'])
             
     def train(self, train_mols, val_mols, train_props=None, val_props=None,
-              epochs=200, save=True, save_freq=None, log=True, log_dir='trials'):
+              epochs=200, use_structure_loss=False, structure_predictor=None,
+              save=True, save_freq=None, log=True, log_dir='trials'):
         """
         Train model and validate
 
@@ -236,13 +237,14 @@ class VAEShell():
             losses = []
             beta = kl_annealer(epoch)
             for j, data in enumerate(train_iter):
-                avg_losses = []
-                avg_bce_losses = []
-                avg_bcemask_losses = []
-                avg_kld_losses = []
+                avg_losses          = []
+                avg_bce_losses      = []
+                avg_bcemask_losses  = []
+                avg_kld_losses      = []
                 avg_prop_bce_losses = []
-                avg_disc_losses = []
-                avg_mmd_losses = []
+                avg_disc_losses     = []
+                avg_mmd_losses      = []
+                avg_rmsd_losses     = []
                 start_run_time = perf_counter()
                 
                 for i in range(self.params['BATCH_CHUNKS']):
@@ -290,11 +292,34 @@ class VAEShell():
                                                                   true_prop, pred_prop,
                                                                   self.params['CHAR_WEIGHTS'], self,
                                                                   beta)
-                           
-                    avg_losses.append(loss.item())
-                    avg_bce_losses.append(bce.item())
-                    avg_kld_losses.append(kld.item())
-                    avg_prop_bce_losses.append(prop_bce.item())
+
+                    if use_structure_loss:
+                        if "peptide" not in self.name:
+                            raise ValueError("Structure loss only supported for peptide models")
+                        _total_n_pairs_to_use = len(mu) # total number might be large, so use a random subset
+                        # N choose 2 = N! / 2!(N-2)! = N(N-1)/2 = M
+                        # N^2 - N - 2M = 0
+                        # N = (1 + sqrt(1 + 8M))/2
+                        _choose_n = (1 + np.sqrt(1 + 8*_total_n_pairs_to_use))/2
+                        _choose_n = int(_choose_n)
+                        _idx = np.random.choice(len(mu), _choose_n, replace=False)
+                        mu_subset            =           mu[_idx]
+                        x_structures_subset  = mols_data[_idx]
+                        structures_pdbs  = structure_predictor.predict_structures(x_structures_subset) # FLAG: needs to be list[str] input
+                        biostructures = structure_predictor.pdb_to_biostructure(structures_pdbs)
+                        rmsd_loss = deep_rmsd_isometry_loss(mu_subset, biostructures)
+                        
+                        # increase the total loss by the rmsd loss
+                        loss = loss + rmsd_loss
+                    else:
+                        rmsd_loss = torch.tensor(0.0)
+
+                    avg_losses.append(              loss.item())
+                    avg_bce_losses.append(           bce.item())
+                    avg_kld_losses.append(           kld.item())
+                    avg_prop_bce_losses.append( prop_bce.item())
+                    avg_rmsd_losses.append(    rmsd_loss.item())
+
                     if not self.model_type == 'aae': #the aae backpropagates in the loss function
                         loss.backward()
                 
@@ -305,7 +330,7 @@ class VAEShell():
                 stop_run_time = perf_counter()
                 run_time = round(stop_run_time - start_run_time, 5)
                 avg_loss = np.mean(avg_losses)
-                avg_bce = np.mean(avg_bce_losses)
+                avg_bce  = np.mean(avg_bce_losses)
                 if len(avg_bcemask_losses) == 0:
                     avg_bcemask = 0
                 else:
@@ -318,13 +343,15 @@ class VAEShell():
                     avg_mmd = 0
                 else:
                     avg_mmd = np.mean(avg_mmd_losses)
-                avg_kld = np.mean(avg_kld_losses)
+
+                avg_kld      = np.mean(avg_kld_losses)
                 avg_prop_bce = np.mean(avg_prop_bce_losses)
+                avg_rmsd     = np.mean(avg_rmsd_losses)
                 losses.append(avg_loss)
 
                 if log:
                     log_file = open(log_fn, 'a')
-                    log_file.write('{},{},{},{},{},{},{},{},{},{},{}\n'.format(self.n_epochs,
+                    log_file.write('{},{},{},{},{},{},{},{},{},{},{},{}\n'.format(self.n_epochs,
                                                                          j, 'train',
                                                                          avg_loss,
                                                                          avg_bce,
@@ -333,6 +360,7 @@ class VAEShell():
                                                                          avg_prop_bce,
                                                                          avg_disc,
                                                                          avg_mmd,
+                                                                         avg_rmsd,
                                                                          run_time))
                     log_file.close()
             train_loss = np.mean(losses)
@@ -341,13 +369,14 @@ class VAEShell():
             self.model.eval()
             losses = []
             for j, data in enumerate(val_iter):
-                avg_losses = []
-                avg_bce_losses = []
-                avg_bcemask_losses = []
-                avg_kld_losses = []
+                avg_losses          = []
+                avg_bce_losses      = []
+                avg_bcemask_losses  = []
+                avg_kld_losses      = []
                 avg_prop_bce_losses = []
-                avg_disc_losses = []
-                avg_mmd_losses = []
+                avg_disc_losses     = []
+                avg_mmd_losses      = []
+                avg_rmsd_losses     = []
                 start_run_time = perf_counter()
                 for i in range(self.params['BATCH_CHUNKS']):
                     batch_data = data[i*self.chunk_size:(i+1)*self.chunk_size,:]
@@ -394,10 +423,34 @@ class VAEShell():
                                                                   true_prop, pred_prop,
                                                                   self.params['CHAR_WEIGHTS'], self,
                                                                   beta)
-                    avg_losses.append(loss.item())
-                    avg_bce_losses.append(bce.item())
-                    avg_kld_losses.append(kld.item())
+                    
+                    if use_structure_loss:
+                        if "peptide" not in self.name:
+                            raise ValueError("Structure loss only supported for peptide models")
+                        _total_n_pairs_to_use = len(mu) # total number might be large, so use a random subset
+                        # N choose 2 = N! / 2!(N-2)! = N(N-1)/2 = M
+                        # N^2 - N - 2M = 0
+                        # N = (1 + sqrt(1 + 8M))/2
+                        _choose_n = (1 + np.sqrt(1 + 8*_total_n_pairs_to_use))/2
+                        _choose_n = int(_choose_n)
+                        _idx = np.random.choice(len(mu), _choose_n, replace=False)
+                        mu_subset            =           mu[_idx]
+                        x_structures_subset  = mols_data[_idx]
+                        structures_pdbs  = structure_predictor.predict_structures(x_structures_subset) # FLAG: needs to be list[str] input
+                        biostructures = structure_predictor.pdb_to_biostructure(structures_pdbs)
+                        rmsd_loss = deep_rmsd_isometry_loss(mu_subset, biostructures)
+                        
+                        # increase the total loss by the rmsd loss
+                        loss = loss + rmsd_loss
+                    else:
+                        rmsd_loss = torch.tensor(0.0)
+
+                    avg_losses.append(             loss.item())
+                    avg_bce_losses.append(          bce.item())
+                    avg_kld_losses.append(          kld.item())
                     avg_prop_bce_losses.append(prop_bce.item())
+                    avg_rmsd_losses.append(   rmsd_loss.item())
+                    
                 stop_run_time = perf_counter()
                 run_time = round(stop_run_time - start_run_time, 5)
                 avg_loss = np.mean(avg_losses)
@@ -414,13 +467,15 @@ class VAEShell():
                     avg_mmd = 0
                 else:
                     avg_mmd = np.mean(avg_mmd_losses)
-                avg_kld = np.mean(avg_kld_losses)
+                
+                avg_kld      = np.mean(avg_kld_losses)
                 avg_prop_bce = np.mean(avg_prop_bce_losses)
+                avg_rmsd     = np.mean(avg_rmsd_losses)
                 losses.append(avg_loss)
                 
                 if log:
                     log_file = open(log_fn, 'a')
-                    log_file.write('{},{},{},{},{},{},{},{},{},{},{}\n'.format(self.n_epochs,
+                    log_file.write('{},{},{},{},{},{},{},{},{},{},{},{}\n'.format(self.n_epochs,
                                                                 j, 'test',
                                                                 avg_loss,
                                                                 avg_bce,
@@ -429,6 +484,7 @@ class VAEShell():
                                                                 avg_prop_bce,
                                                                 avg_disc,
                                                                 avg_mmd,
+                                                                avg_rmsd,
                                                                 run_time))
                     log_file.close()
 
