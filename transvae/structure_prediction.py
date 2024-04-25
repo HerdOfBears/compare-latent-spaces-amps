@@ -167,10 +167,11 @@ class StructurePredictor:
             sequences = list(sequences)
             
         logging.info("Loading model...")
+        min_sequence_length = 16 # because of CEAlign window_size = 8
         structures_pdbs = []
         with torch.no_grad():
             for i, seq in enumerate(sequences):
-                if len(seq)<10:
+                if len(seq)<min_sequence_length:
                     continue
                 outputs = self.model.infer_pdb(seq)
                 structures_pdbs.append(outputs)
