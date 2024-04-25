@@ -7,6 +7,7 @@ from Bio.PDB import PDBParser, cealign
 
 import logging
 import os
+import time
 
 from transformers import AutoTokenizer, EsmForProteinFolding
 
@@ -49,9 +50,11 @@ def batch_sequence_to_pdb(sequences:list[str], model_path:str) -> list[str]:
 
     structures_pdbs = []
     with torch.no_grad():
+        t0 = time.time()
         for i, seq in enumerate(sequences):
             outputs = model.infer_pdb(seq)
             structures_pdbs.append(outputs)
+        print(f"Time taken for {len(sequences)}: {time.time()-t0:.2f}s")
 
     return structures_pdbs
 

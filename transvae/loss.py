@@ -7,6 +7,7 @@ import math, copy, time
 import MDAnalysis as mda
 
 from torch.autograd import Variable
+from transvae.structure_prediction import biostructure_to_rmsds
 
 def vae_loss(x, x_out, mu, logvar, true_prop, pred_prop, weights, self, beta=1):
     "Binary Cross Entropy Loss + Kullback leibler Divergence"
@@ -206,34 +207,13 @@ def deep_rmsd_isometry_loss(mu, x_structures, beta=1):
                difference in distance b/w latent space points 
                and their corresponding inputted points' aligned rmsds
     """
-    _total_n_pairs_to_use = len(mu) # total number might be very large, so use a random subset
-    # N choose 2 = N! / 2!(N-2)! = N(N-1)/2 = M
-    # N^2 - N = 2M
-    # N^2 - N - 2M = 0
-    # N = (1 + sqrt(1 + 8M))/2
-    _choose_n = (1 + np.sqrt(1 + 8*_total_n_pairs_to_use))/2
-    _choose_n = int(_choose_n)
-    idx = np.random.choice(len(mu), _choose_n, replace=False)
-    mu_subset            =           mu[idx]
-    x_structures_subset  = x_structures[idx]
 
     # compute pairwise distances in the latent space using mu_subset
     # https://pytorch.org/docs/stable/generated/torch.cdist.html
-    _pairwise_distances = torch.cdist(mu_subset, mu_subset, p=2)
+    _pairwise_distances = torch.cdist(mu, mu, p=2)
 
-    # using mdanalysis, compute RMSD between x_structures_subset
-    # https://docs.mdanalysis.org/stable/documentation_pages/analysis/rms.html
-    _rmsds = []
-    for i in range(len(x_structures_subset)):
-        for j in range(i+1, len(x_structures_subset)):
-            _uni1 = mda.Universe(x_structures_subset[i])
-            _uni2 = mda.Universe(x_structures_subset[j])
-            _rmsds.append(
-                mda.analysis.rms.rmsd(
-                    _uni1.select_atoms("backbone"),
-                    _uni2.select_atoms("backbone")
-                )
-            )
+    # compute pairwise rmsds between the structures
+    _rmsds = biostructure_to_rmsds(x_structures)
 
     # compute difference between pairwise distances and rmsds
     _pairwise_distances = _pairwise_distances.flatten()
