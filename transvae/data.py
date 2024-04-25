@@ -22,6 +22,7 @@ def vae_data_gen(data, max_len=126, name=None, props=None, char_dict=None):
     seq_list = data[:,0] #unpackage the smiles: mols is a list of lists of smiles (lists of characters) 
     if props is None:
         props = np.zeros(seq_list.shape)
+        props = props.reshape(-1,1)
         n_prop_outputs = 1
     else:
         # props = props.astype(int)
