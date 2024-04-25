@@ -437,7 +437,8 @@ class VAEShell():
                         _idx = np.random.choice(len(mu), _choose_n, replace=False)
                         mu_subset            =           mu[_idx]
                         x_structures_subset  = mols_data[_idx]
-                        structures_pdbs  = structure_predictor.predict_structures(x_structures_subset) # FLAG: needs to be list[str] input
+                        x_structures_subset_seq = decode_seq(x_structures_subset, self.params['CHAR_DICT'])
+                        structures_pdbs  = structure_predictor.predict_structures(x_structures_subset_seq) # FLAG: needs to be list[str] input
                         biostructures = structure_predictor.pdb_to_biostructure(structures_pdbs)
                         rmsd_loss = deep_rmsd_isometry_loss(mu_subset, biostructures)
                         
