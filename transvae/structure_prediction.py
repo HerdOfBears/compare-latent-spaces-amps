@@ -124,11 +124,11 @@ def biostructure_to_rmsds(biostructures:list[Bio.PDB.Structure])->np.ndarray:
         aligner.set_reference(biostructures[i])
         for j in range(i+1, N): 
         #     aligner.align(biostructures[j]) #FLAG
-            coord = aligner.get_guide_coord_from_structure(biostructures[j]
+            coord = aligner.get_guide_coord_from_structure(biostructures[j])
             # Run CEAlign
             # CEAlign returns the best N paths, where each path is a pair of lists
             # with aligned atom indices. Paths are not guaranteed to be unique.
-            paths = ccealign.run_cealign(aligner.refcoord, coord, aligner.window_size, aligner.max_gap))
+            paths = ccealign.run_cealign(aligner.refcoord, coord, aligner.window_size, aligner.max_gap)
 
             # rmsds.append( # FLAG
             #     aligner.rms
