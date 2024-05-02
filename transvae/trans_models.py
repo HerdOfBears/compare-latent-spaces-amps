@@ -313,8 +313,8 @@ class VAEShell():
                         mu_subset = mu_subset[keep_indices]
                         structures_pdbs  = structure_predictor.predict_structures(x_structures_subset_seq) 
                         biostructures = structure_predictor.pdb_to_biostructure(structures_pdbs)
-                        rmsd_loss = deep_rmsd_isometry_loss(mu_subset, biostructures)
-                        
+                        # rmsd_loss = deep_rmsd_isometry_loss(mu_subset, biostructures)
+                        rmsd_loss = torch.tensor(0.0)
                         # increase the total loss by the rmsd loss
                         loss = loss + rmsd_loss
                     else:
@@ -450,8 +450,8 @@ class VAEShell():
                         mu_subset = mu_subset[keep_indices]
                         structures_pdbs  = structure_predictor.predict_structures(x_structures_subset_seq) # FLAG: needs to be list[str] input
                         biostructures = structure_predictor.pdb_to_biostructure(structures_pdbs)
-                        rmsd_loss = deep_rmsd_isometry_loss(mu_subset, biostructures)
-                        
+                        # rmsd_loss = deep_rmsd_isometry_loss(mu_subset, biostructures)
+                        rmsd_loss = torch.tensor(0.0)
                         # increase the total loss by the rmsd loss
                         loss = loss + rmsd_loss
                     else:
