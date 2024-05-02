@@ -3,7 +3,7 @@ import torch
 import pandas as pd
 import MDAnalysis as mda
 import Bio.PDB
-from Bio.PDB import PDBParser, cealign
+from Bio.PDB import PDBParser, cealign, ccealign # ccealign has one function: run_cealign(coordsA, coordsB, windowSize, gapMax)
 
 import logging
 import os
@@ -122,8 +122,13 @@ def biostructure_to_rmsds(biostructures:list[Bio.PDB.Structure])->np.ndarray:
     
     for i in range(N):
         aligner.set_reference(biostructures[i])
-        # for j in range(i+1, N): # FLAG
-        #     aligner.align(biostructures[j])
+        for j in range(i+1, N): 
+        #     aligner.align(biostructures[j]) #FLAG
+        coord = aligner.get_guide_coord_from_structure(biostructures[j]
+        # Run CEAlign
+        # CEAlign returns the best N paths, where each path is a pair of lists
+        # with aligned atom indices. Paths are not guaranteed to be unique.
+        paths = ccealign.run_cealign(aligner.refcoord, coord, aligner.window_size, aligner.max_gap))
 
             # rmsds.append( # FLAG
             #     aligner.rms
