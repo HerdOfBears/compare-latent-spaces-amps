@@ -4,6 +4,7 @@ import pandas as pd
 import MDAnalysis as mda
 import Bio.PDB
 from Bio.PDB import PDBParser, cealign, ccealign # ccealign has one function: run_cealign(coordsA, coordsB, windowSize, gapMax)
+from Bio.PDB.qcprot import QCPSuperimposer
 
 import logging
 import os
@@ -124,12 +125,31 @@ def biostructure_to_rmsds(biostructures:list[Bio.PDB.Structure])->np.ndarray:
         aligner.set_reference(biostructures[i])
         for j in range(i+1, N): 
             aligner.align(biostructures[j]) #FLAG
-            # coord = aligner.get_guide_coord_from_structure(biostructures[j])
-            # # Run CEAlign
-            # # CEAlign returns the best N paths, where each path is a pair of lists
-            # # with aligned atom indices. Paths are not guaranteed to be unique.
-            # paths = ccealign.run_cealign(aligner.refcoord, coord, aligner.window_size, aligner.max_gap)
+            
+            ############################################
+            # Run CEAlign
+            # CEAlign returns the best N paths, where each path is a pair of lists
+            # with aligned atom indices. Paths are not guaranteed to be unique.
+            coord = aligner.get_guide_coord_from_structure(biostructures[j])
+            paths = ccealign.run_cealign(aligner.refcoord, coord, aligner.window_size, aligner.max_gap)
+            unique_paths = {(tuple(pA), tuple(pB)) for pA, pB in paths}
 
+            # Iterate over unique paths and find the one that gives the lowest
+            # corresponding RMSD. Use QCP to align the molecules.
+            best_rmsd = 1e6
+            for u_path in unique_paths:
+                idxA, idxB = u_path
+
+                coordsA = np.array([aligner.refcoord[i] for i in idxA])
+                coordsB = np.array([coord[i] for i in idxB])
+
+                aln = QCPSuperimposer()
+                aln.set(coordsA, coordsB)
+                # aln.run()
+                if aln.rms < best_rmsd:
+                    best_rmsd = aln.rms
+
+            ############################################
             # rmsds.append( # FLAG
             #     aligner.rms
             # )
