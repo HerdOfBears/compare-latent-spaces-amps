@@ -122,8 +122,8 @@ def biostructure_to_rmsds(biostructures:list[Bio.PDB.Structure])->np.ndarray:
     
     for i in range(N):
         aligner.set_reference(biostructures[i])
-        for j in range(i+1, N):
-            aligner.align(biostructures[j])
+        # for j in range(i+1, N): # FLAG
+        #     aligner.align(biostructures[j])
 
             # rmsds.append( # FLAG
             #     aligner.rms
