@@ -311,7 +311,7 @@ class VAEShell():
                             if len(seq)>=16: # threshold for CEAlign from biopython
                                 keep_indices.append(i)
                         mu_subset = mu_subset[keep_indices]
-                        structures_pdbs  = structure_predictor.predict_structures(x_structures_subset_seq) 
+                        # structures_pdbs  = structure_predictor.predict_structures(x_structures_subset_seq) 
                         # biostructures = structure_predictor.pdb_to_biostructure(structures_pdbs)
                         # rmsd_loss = deep_rmsd_isometry_loss(mu_subset, biostructures)
                         rmsd_loss = torch.tensor(0.0)
@@ -448,7 +448,7 @@ class VAEShell():
                             if len(seq)>=16: # threshold for CEAlign from biopython
                                 keep_indices.append(i)
                         mu_subset = mu_subset[keep_indices]
-                        structures_pdbs  = structure_predictor.predict_structures(x_structures_subset_seq) # FLAG: needs to be list[str] input
+                        # structures_pdbs  = structure_predictor.predict_structures(x_structures_subset_seq) # FLAG: needs to be list[str] input
                         # biostructures = structure_predictor.pdb_to_biostructure(structures_pdbs)
                         # rmsd_loss = deep_rmsd_isometry_loss(mu_subset, biostructures)
                         rmsd_loss = torch.tensor(0.0)
