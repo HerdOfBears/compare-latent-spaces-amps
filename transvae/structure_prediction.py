@@ -125,12 +125,12 @@ def biostructure_to_rmsds(biostructures:list[Bio.PDB.Structure])->np.ndarray:
         for j in range(i+1, N):
             aligner.align(biostructures[j])
 
-            rmsds.append(
-                aligner.rms
-            )
+            # rmsds.append( # FLAG
+            #     aligner.rms
+            # )
     
     # construct array of zeros
-    rmsds = np.zeros((N*(N-1)//2, 1))
+    rmsds = np.zeros((N*(N-1)//2, 1)) #FLAG
 
     print("creating numpy array:")
     # rmsds = np.array(rmsds).reshape(-1,1)
