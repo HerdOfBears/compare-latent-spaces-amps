@@ -302,15 +302,15 @@ class VAEShell():
                         # N = (1 + sqrt(1 + 8M))/2
                         _choose_n = (1 + np.sqrt(1 + 8*_total_n_pairs_to_use))/2
                         _choose_n = int(_choose_n)
-                        _idx = np.random.choice(len(mu), _choose_n, replace=False)
-                        mu_subset            =        mu[_idx]
-                        x_structures_subset  = mols_data[_idx]
-                        x_structures_subset_seq = decode_seq(x_structures_subset, self.params['CHAR_DICT'])
-                        keep_indices = []
-                        for i, seq in enumerate(x_structures_subset_seq):
-                            if len(seq)>=16: # threshold for CEAlign from biopython
-                                keep_indices.append(i)
-                        mu_subset = mu_subset[keep_indices]
+                        # _idx = np.random.choice(len(mu), _choose_n, replace=False)
+                        # mu_subset            =        mu[_idx]
+                        # x_structures_subset  = mols_data[_idx]
+                        # x_structures_subset_seq = decode_seq(x_structures_subset, self.params['CHAR_DICT'])
+                        # keep_indices = []
+                        # for i, seq in enumerate(x_structures_subset_seq):
+                        #     if len(seq)>=16: # threshold for CEAlign from biopython
+                        #         keep_indices.append(i)
+                        # mu_subset = mu_subset[keep_indices]
                         # structures_pdbs  = structure_predictor.predict_structures(x_structures_subset_seq) 
                         # biostructures = structure_predictor.pdb_to_biostructure(structures_pdbs)
                         # rmsd_loss = deep_rmsd_isometry_loss(mu_subset, biostructures)
@@ -439,15 +439,15 @@ class VAEShell():
                         # N = (1 + sqrt(1 + 8M))/2
                         _choose_n = (1 + np.sqrt(1 + 8*_total_n_pairs_to_use))/2
                         _choose_n = int(_choose_n)
-                        _idx = np.random.choice(len(mu), _choose_n, replace=False)
-                        mu_subset            =           mu[_idx]
-                        x_structures_subset  = mols_data[_idx]
-                        x_structures_subset_seq = decode_seq(x_structures_subset, self.params['CHAR_DICT'])
-                        keep_indices = []
-                        for i, seq in enumerate(x_structures_subset_seq):
-                            if len(seq)>=16: # threshold for CEAlign from biopython
-                                keep_indices.append(i)
-                        mu_subset = mu_subset[keep_indices]
+                        # _idx = np.random.choice(len(mu), _choose_n, replace=False)
+                        # mu_subset            =           mu[_idx]
+                        # x_structures_subset  = mols_data[_idx]
+                        # x_structures_subset_seq = decode_seq(x_structures_subset, self.params['CHAR_DICT'])
+                        # keep_indices = []
+                        # for i, seq in enumerate(x_structures_subset_seq):
+                        #     if len(seq)>=16: # threshold for CEAlign from biopython
+                        #         keep_indices.append(i)
+                        # mu_subset = mu_subset[keep_indices]
                         # structures_pdbs  = structure_predictor.predict_structures(x_structures_subset_seq) # FLAG: needs to be list[str] input
                         # biostructures = structure_predictor.pdb_to_biostructure(structures_pdbs)
                         # rmsd_loss = deep_rmsd_isometry_loss(mu_subset, biostructures)
