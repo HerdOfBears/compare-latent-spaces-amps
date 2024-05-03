@@ -1,6 +1,7 @@
 import os
 import pickle
 import pkg_resources
+import logging
 
 import numpy as np
 import pandas as pd
@@ -118,6 +119,10 @@ if __name__ == '__main__':
     print("main function called /n")
     parser = train_parser()
     args = parser.parse_args()
+
+    logging.basicConfig(level=logging.INFO,
+                        format='%(asctime)s - %(levelname)s - %(message)s',
+                        filename="train.log")
     
     # quick fix of parser bug. parsing prediction_types as a list of strings rather than a list of characters
     if args.prediction_types is not None:
