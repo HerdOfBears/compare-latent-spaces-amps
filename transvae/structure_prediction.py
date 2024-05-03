@@ -140,8 +140,8 @@ def biostructure_to_rmsds(biostructures:list[Bio.PDB.Structure])->np.ndarray:
             for u_path in unique_paths:
                 idxA, idxB = u_path
 
-                coordsA = np.array([aligner.refcoord[i] for i in idxA])
-                coordsB = np.array([coord[i] for i in idxB])
+                # coordsA = np.array([aligner.refcoord[i] for i in idxA])
+                # coordsB = np.array([coord[i] for i in idxB])
 
                 # aln = QCPSuperimposer()
                 # aln.set(coordsA, coordsB)
