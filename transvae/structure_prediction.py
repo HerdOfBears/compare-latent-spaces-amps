@@ -133,7 +133,8 @@ def biostructure_to_rmsds(biostructures:list[Bio.PDB.Structure])->np.ndarray:
             # with aligned atom indices. Paths are not guaranteed to be unique.
             coord = aligner.get_guide_coord_from_structure(biostructures[j])
             paths = ccealign.run_cealign(aligner.refcoord, coord, aligner.window_size, aligner.max_gap)
-            logging.info(f"CEAlign returned {len(paths)} paths: {paths} | type: {type(paths[0])}")
+            logging.info(f"CEAlign returned {len(paths)} paths: {paths}")
+            logging.info(f" type: {type(paths[0])}")
             unique_paths = {(tuple(pA), tuple(pB)) for pA, pB in paths}
 
             # Iterate over unique paths and find the one that gives the lowest
