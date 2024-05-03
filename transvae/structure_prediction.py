@@ -146,6 +146,7 @@ def biostructure_to_rmsds(biostructures:list[Bio.PDB.Structure])->np.ndarray:
                 aln = QCPSuperimposer()
                 aln.set(coordsA, coordsB)
                 # aln.run()
+                aln.rms=1
                 if aln.rms < best_rmsd:
                     best_rmsd = aln.rms
 
