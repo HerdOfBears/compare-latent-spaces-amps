@@ -121,10 +121,16 @@ def biostructure_to_rmsds(biostructures:list[Bio.PDB.Structure])->np.ndarray:
     if N < 2:
         rmsds = np.zeros((1,1)) - 1 # rmsd can't be negative, so -1 indicates error
         return rmsds
-    
+    d3to1 = {'CYS': 'C', 'ASP': 'D', 'SER': 'S', 'GLN': 'Q', 'LYS': 'K',
+             'ILE': 'I', 'PRO': 'P', 'THR': 'T', 'PHE': 'F', 'ASN': 'N', 
+             'GLY': 'G', 'HIS': 'H', 'LEU': 'L', 'ARG': 'R', 'TRP': 'W', 
+             'ALA': 'A', 'VAL':'V', 'GLU': 'E', 'TYR': 'Y', 'MET': 'M'
+    }
     for i in range(N):
         aligner.set_reference(biostructures[i])
+        seqi = "".join([d3to1[r.resname] for r in biostructures[i].get_residues() ])
         for j in range(i+1, N): 
+            seqj = "".join([d3to1[r.resname] for r in biostructures[j].get_residues() ])
             # aligner.align(biostructures[j]) #FLAG
             
             ############################################
@@ -133,7 +139,8 @@ def biostructure_to_rmsds(biostructures:list[Bio.PDB.Structure])->np.ndarray:
             # with aligned atom indices. Paths are not guaranteed to be unique.
             coord = aligner.get_guide_coord_from_structure(biostructures[j])
             paths = ccealign.run_cealign(aligner.refcoord, coord, aligner.window_size, aligner.max_gap)
-            logging.info(f"CEAlign returned {len(paths)} paths: {paths}")
+            logging.info(f"seqi = {seqi}")
+            logging.info(f"seqj = {seqj}") 
             logging.info(f" type: {type(paths[0])}")
             unique_paths = {(tuple(pA), tuple(pB)) for pA, pB in paths}
 
