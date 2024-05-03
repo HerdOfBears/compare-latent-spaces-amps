@@ -143,10 +143,10 @@ def biostructure_to_rmsds(biostructures:list[Bio.PDB.Structure])->np.ndarray:
                 coordsA = np.array([aligner.refcoord[i] for i in idxA])
                 coordsB = np.array([coord[i] for i in idxB])
 
-                aln = QCPSuperimposer()
-                aln.set(coordsA, coordsB)
+                # aln = QCPSuperimposer()
+                # aln.set(coordsA, coordsB)
                 # aln.run()
-                aln.rms=1
+                # aln.rms=1
                 _temp = 1
                 if _temp < best_rmsd:
                     best_rmsd = _temp
