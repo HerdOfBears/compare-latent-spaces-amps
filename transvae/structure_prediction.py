@@ -151,31 +151,31 @@ def biostructure_to_rmsds(biostructures:list[Bio.PDB.Structure])->np.ndarray:
             # Iterate over unique paths and find the one that gives the lowest
             # corresponding RMSD. Use QCP to align the molecules.
             best_rmsd = 1e6
-            # for u_path in unique_paths:
-            #     idxA, idxB = u_path
+            for u_path in unique_paths:
+                idxA, idxB = u_path
 
-            #     coordsA = np.array([aligner.refcoord[i] for i in idxA])
-            #     coordsB = np.array([coord[i] for i in idxB])
+                coordsA = np.array([aligner.refcoord[i] for i in idxA])
+                coordsB = np.array([coord[i] for i in idxB])
 
-            #     aln = QCPSuperimposer()
-            #     aln.set(coordsA, coordsB)
-            #     aln.run()
-            #     aln.rms=1
-            #     _temp = 1
-            #     if _temp < best_rmsd:
-            #         best_rmsd = _temp
+                aln = QCPSuperimposer()
+                aln.set(coordsA, coordsB)
+                aln.run()
+                aln.rms=1
+                _temp = 1
+                if _temp < best_rmsd:
+                    best_rmsd = _temp
 
             ############################################
-            # rmsds.append( # FLAG
-            #     aligner.rms
-            # )
+            rmsds.append( # FLAG
+                best_rmsd
+            )
     
     # construct array of zeros
-    rmsds = np.zeros((N*(N-1)//2, 1)) #FLAG
+    # rmsds = np.zeros((N*(N-1)//2, 1)) #FLAG
 
-    print("creating numpy array:")
-    # rmsds = np.array(rmsds).reshape(-1,1)
-    print("created array")
+    logging.info("creating numpy array:")
+    rmsds = np.array(rmsds).reshape(-1,1)
+    logging.info("created array")
     return rmsds
 
 
