@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import math, copy, time
-
+import logging
 import MDAnalysis as mda
 
 from torch.autograd import Variable
@@ -231,11 +231,15 @@ def deep_rmsd_isometry_loss(mu, x_structures, beta=1):
     if len(_rmsds) == 1:
         if _rmsds < 0: # then error
             return torch.tensor(0.)
-    print("making rmsd tensor")
-    # _rmsds = torch.from_numpy(_rmsds).flatten()
+    logging.info("making rmsd tensor")
+    _rmsds = torch.from_numpy(_rmsds).flatten()
 
     if len(_rmsds)!=len(_pairwise_distances):
         raise ValueError(f"Number of pairwise distances ({len(_pairwise_distances)}) and rmsds ({len(_rmsds)}) do not match")
+
+    # ignore indices where RMSD = -1
+    _pairwise_distances = _pairwise_distances[_rmsds!=-1]
+    _rmsds = _rmsds[_rmsds!=-1]
 
     # compute difference between pairwise distances and rmsds
     _diff  = torch.abs(_pairwise_distances - _rmsds)
