@@ -140,10 +140,12 @@ def biostructure_to_rmsds(biostructures:list[Bio.PDB.Structure])->np.ndarray:
             coord = aligner.get_guide_coord_from_structure(biostructures[j])
             
             paths = ccealign.run_cealign(aligner.refcoord, coord, aligner.window_size, aligner.max_gap)
+            paths_str = str(paths)
             logging.info(f"seqi = {seqi}")
             logging.info(f"seqj = {seqj}") 
-            logging.info(f"refcoords = {aligner.refcoord}")
-            logging.info(f"coords = {coord}")
+            if paths_str[1:7] == "<NULL>":
+                logging.info(f"ran into <NULL> paths")
+                continue
             unique_paths = {(tuple(pA), tuple(pB)) for pA, pB in paths}
 
             # Iterate over unique paths and find the one that gives the lowest
