@@ -228,7 +228,6 @@ def deep_rmsd_isometry_loss(mu, x_structures, beta=1):
 
     # compute pairwise rmsds between the structures
     _rmsds = biostructure_to_rmsds(x_structures)
-    _rmsds = torch.zeros_like(_pairwise_distances)
     if len(_rmsds) == 1:
         if _rmsds < 0: # then error
             return torch.tensor(0.)
