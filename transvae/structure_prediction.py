@@ -145,6 +145,7 @@ def biostructure_to_rmsds(biostructures:list[Bio.PDB.Structure])->np.ndarray:
             logging.info(f"seqj = {seqj}") 
             if paths_str[1:7] == "<NULL>":
                 logging.info(f"ran into <NULL> paths")
+                rmsds.append(-1)
                 continue
             unique_paths = {(tuple(pA), tuple(pB)) for pA, pB in paths}
 
