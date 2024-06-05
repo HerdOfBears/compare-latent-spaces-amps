@@ -21,7 +21,7 @@ from botorch.models import SingleTaskGP
 from botorch.fit import fit_gpytorch_mll
 from botorch.utils import standardize
 from gpytorch.mlls import ExactMarginalLogLikelihood
-from botorch.acquisition import UpperConfidenceBound
+from botorch.acquisition import UpperConfidenceBound, ExpectedImprovement
 from botorch.optim import optimize_acqf
 
 # from ..oracles.AMPlify.src.AMPlify import Amplify
@@ -55,7 +55,8 @@ class OptimizeInReducedLatentSpace():
                  generative_model, 
                  property_oracle, 
                  dimensionality_reduction,
-                 char_dict 
+                 char_dict,
+                 minimize_or_maximize_score="maximize"
         ):
         """
         Class to perform Bayesian Optimization in the reduced latent space of a generative model.
@@ -68,30 +69,46 @@ class OptimizeInReducedLatentSpace():
         property_oracle :  
             Supervised learning model that predicts a property of a sequence.
             Must have a method `predict` that takes a list of sequences and 
-            returns a list of predictions and confidence scores.
+            returns a list of prediction scores (probability, regression value, etc).
         dimensionality_reduction : 
             A dimensionality reduction model. Similar to sklearn's PCA.
             Must have a method `transform` and `inverse_transform`.
         char_dict : dict
             A dictionary that maps sequence characters to integers.
+        minimize_or_maximize_score : str, optional
+            Whether to minimize or maximize the property score. 
+            If "maximize", the optimizer will attempt to maximize the score.
+            If "minimize", the optimizer will attempt to minimize the score.
+            The default is "maximize".
         """
         
         # Generative Model and Property Oracle setup
         self.generative_model = generative_model
         self.char_dict = char_dict
-
+        self.minimize_or_maximize_score = minimize_or_maximize_score
         self.property_oracle = property_oracle
+
+        print("Testing property oracle...")
+        test_sequence = "A"*30
+        test_prediction = self.property_oracle.predict([test_sequence])
+        if isinstance(test_prediction, tuple):
+            raise ValueError("""Property Oracle must return a single value, not a tuple.
+                             Try wrapping it in a class that only returns the prediction value.""")
 
         # Dimensionality Reduction setup
         # self.n_components = n_dim_components
         self.dimensionality_reducer = dimensionality_reduction
         self.n_reduced_dims = self.dimensionality_reducer.n_components
 
+        # bounds for Upper Confidence Bound method of 'exploring' the latent space
+        self.bounds = torch.stack([torch.ones(self.n_reduced_dims)*(-10), torch.ones(self.n_reduced_dims)*10])
+
         self.optimization_results = {
             "iterations":[],
             "candidates":[],
-            "candidate_classes":[],
-            "candidate_scores":[]
+            "candidate_scores":[],
+            "best_score":0.0,
+            "best_sequence":""
         }
 
     def decode_seq(self, encoded_seq:list[int]) -> str:
@@ -155,23 +172,24 @@ class OptimizeInReducedLatentSpace():
         train_Y=train_Y.to(float)
 
         char_dict = self.char_dict
-        
-        self.bounds = torch.stack([torch.ones(self.n_reduced_dims)*(-10), torch.ones(self.n_reduced_dims)*10])
-        
+                
         if self.optimization_results["iterations"]:
             last_iteration = self.optimization_results["iterations"][-1]
         else:
             last_iteration = 0
         print("============================================\nStarting optimization...")
+        best_score = -1e6
+        best_seq = None
         for i in range(n_iters):
 
             # fit and get the GP model
             self.gp = self.get_fitted_gp_model(train_X, train_Y)
-            self.UCB = UpperConfidenceBound(self.gp, beta=0.1)
+            # self.UCB = UpperConfidenceBound(self.gp, beta=0.1)
+            self.acq_func = ExpectedImprovement(self.gp, best_score)
 
             # grab candidate(s)
             candidate, acq_value = optimize_acqf(
-                self.UCB, bounds=self.bounds, q=1, num_restarts=5, raw_samples=20,
+                self.acq_func, bounds=self.bounds, q=1, num_restarts=5, raw_samples=20,
             )
 
             # inverse projection
@@ -185,20 +203,28 @@ class OptimizeInReducedLatentSpace():
             candidate_sequence = self.decode_seq(candidate_decoded.flatten().numpy())
 
             print(f"candiate sequence: {candidate_sequence}")
-            prediction_class, prediction_score = self.property_oracle.predict(
+            prediction_score = self.property_oracle.predict(
                 [candidate_sequence]
             )
-            class_int = 1 if prediction_class[0] == "AMP" else 0
+
+            if self.minimize_or_maximize_score=="minimize":
+                objective_value = -prediction_score
+            else:
+                objective_value =  prediction_score
 
             # update the training data for the GP model
             train_X = torch.cat([train_X, candidate], dim=0)
-            train_Y = torch.cat([train_Y, torch.tensor(class_int).float().reshape(1,1)], dim=0)
-
-            print(f"iteration {i+1} completed. Prediction class: {prediction_class}, Prediction score: {prediction_score}")
+            train_Y = torch.cat([train_Y, torch.tensor(prediction_score).float().reshape(1,1)], dim=0)
+            if objective_value > best_score:
+                best_score = objective_value
+                best_seq   = candidate_sequence
+            
+            print(f"iteration {i+1} completed. Prediction score: {prediction_score}")
             self.optimization_results["iterations"].append(i+1+last_iteration)
             self.optimization_results["candidates"].append(candidate_sequence)
-            self.optimization_results["candidate_classes"].append(prediction_class)
             self.optimization_results["candidate_scores"].append(prediction_score)
+            self.optimization_results["best_objective_value"] = best_score
+            self.optimization_results["best_sequence"] = best_seq
 
         print("Optimization complete")
 
