@@ -12,7 +12,7 @@ from torch.autograd import Variable
 from transvae.tvae_util import *
 from transvae.opt import NoamOpt
 from transvae.data import vae_data_gen, make_std_mask
-from transvae.loss import vae_loss, trans_vae_loss, aae_loss, wae_loss, deep_rmsd_isometry_loss
+from transvae.loss import vae_loss, trans_vae_loss, aae_loss, wae_loss, deep_isometry_loss
 
 import torch.distributed as dist
 import torch.utils.data.distributed
@@ -144,7 +144,7 @@ class VAEShell():
             self.optimizer.load_state_dict(self.current_state['optimizer_state_dict'])
             
     def train(self, train_mols, val_mols, train_props=None, val_props=None,
-              epochs=200, use_structure_loss=False, structure_predictor=None,
+              epochs=200, use_isometry_loss=False, pairwise_distances=None,structure_predictor=None,
               save=True, save_freq=None, log=True, log_dir='trials'):
         """
         Train model and validate
@@ -215,7 +215,7 @@ class VAEShell():
             log_file = open(log_fn, 'a')
             if not already_wrote:
                 log_file.write('epoch,batch_idx,data_type,tot_loss,recon_loss,pred_loss,'\
-                               'kld_loss,prop_bce_loss,disc_loss,mmd_loss,rmsd_loss,run_time\n')
+                               'kld_loss,prop_bce_loss,disc_loss,mmd_loss,isometry_loss,run_time\n')
             log_file.close()
 
         ### Initialize Annealer
@@ -244,7 +244,7 @@ class VAEShell():
                 avg_prop_bce_losses = []
                 avg_disc_losses     = []
                 avg_mmd_losses      = []
-                avg_rmsd_losses     = []
+                avg_isometry_losses     = []
                 start_run_time = perf_counter()
                 
                 for i in range(self.params['BATCH_CHUNKS']):
@@ -293,9 +293,9 @@ class VAEShell():
                                                                   self.params['CHAR_WEIGHTS'], self,
                                                                   beta)
 
-                    if use_structure_loss:
+                    if use_isometry_loss:
                         if "peptide" not in self.name:
-                            raise ValueError("Structure loss only supported for peptide models")
+                            raise ValueError("isometry loss only supported for peptide models")
                         _total_n_pairs_to_use = len(mu) # total number might be large, so use a random subset
                         # N choose 2 = N! / 2!(N-2)! = N(N-1)/2 = M
                         # N^2 - N - 2M = 0
@@ -303,27 +303,34 @@ class VAEShell():
                         _choose_n = (1 + np.sqrt(1 + 8*_total_n_pairs_to_use))/2
                         _choose_n = int(_choose_n)
                         _idx = np.random.choice(len(mu), _choose_n, replace=False)
-                        mu_subset            =        mu[_idx]
-                        x_structures_subset  = mols_data[_idx]
-                        x_structures_subset_seq = decode_seq(x_structures_subset, self.params['CHAR_DICT'])
-                        keep_indices = []
-                        for i, seq in enumerate(x_structures_subset_seq):
-                            if len(seq)>=16: # threshold for CEAlign from biopython
-                                keep_indices.append(i)
-                        mu_subset = mu_subset[keep_indices]
-                        structures_pdbs  = structure_predictor.predict_structures(x_structures_subset_seq) 
-                        biostructures = structure_predictor.pdb_to_biostructure(structures_pdbs)
-                        rmsd_loss = deep_rmsd_isometry_loss(mu_subset, biostructures)
+                        
+                        ######################
+                        # get distance_targets
+                        # must decode sequences in batch
+                        ######################
+                        _sequences = mols_data[_idx]
+                        _sequences = decode_seq(_sequences, self.params['CHAR_DICT'])
+                        distance_targets = torch.zeros(_total_n_pairs_to_use)
+                        _dist_idx = 0
+                        for i in range(len(_sequences)):
+                            for j in range(i+1, len(_sequences)):
+                                distance_targets[_dist_idx] = pairwise_distances[_sequences[i]+"_"+_sequences[j]]
+                                _dist_idx += 1
+
+                        # latent points
+                        mu_subset = mu[_idx]
+                        
+                        isometry_loss = deep_isometry_loss(mu_subset, distance_targets)
                         # increase the total loss by the rmsd loss
-                        loss = loss + rmsd_loss
+                        loss = loss + isometry_loss
                     else:
-                        rmsd_loss = torch.tensor(0.0)
+                        isometry_loss = torch.tensor(0.0)
 
                     avg_losses.append(              loss.item())
                     avg_bce_losses.append(           bce.item())
                     avg_kld_losses.append(           kld.item())
                     avg_prop_bce_losses.append( prop_bce.item())
-                    avg_rmsd_losses.append(    rmsd_loss.item())
+                    avg_isometry_losses.append(    isometry_loss.item())
 
                     if not self.model_type == 'aae': #the aae backpropagates in the loss function
                         loss.backward()
@@ -351,7 +358,7 @@ class VAEShell():
 
                 avg_kld      = np.mean(avg_kld_losses)
                 avg_prop_bce = np.mean(avg_prop_bce_losses)
-                avg_rmsd     = np.mean(avg_rmsd_losses)
+                avg_rmsd     = np.mean(avg_isometry_losses)
                 losses.append(avg_loss)
 
                 if log:
@@ -381,7 +388,7 @@ class VAEShell():
                 avg_prop_bce_losses = []
                 avg_disc_losses     = []
                 avg_mmd_losses      = []
-                avg_rmsd_losses     = []
+                avg_isometry_losses     = []
                 start_run_time = perf_counter()
                 for i in range(self.params['BATCH_CHUNKS']):
                     batch_data = data[i*self.chunk_size:(i+1)*self.chunk_size,:]
@@ -429,7 +436,7 @@ class VAEShell():
                                                                   self.params['CHAR_WEIGHTS'], self,
                                                                   beta)
                     
-                    if use_structure_loss:
+                    if use_isometry_loss:
                         if "peptide" not in self.name:
                             raise ValueError("Structure loss only supported for peptide models")
                         _total_n_pairs_to_use = len(mu) # total number might be large, so use a random subset
@@ -449,17 +456,17 @@ class VAEShell():
                         mu_subset = mu_subset[keep_indices]
                         structures_pdbs  = structure_predictor.predict_structures(x_structures_subset_seq) # FLAG: needs to be list[str] input
                         biostructures = structure_predictor.pdb_to_biostructure(structures_pdbs)
-                        rmsd_loss = deep_rmsd_isometry_loss(mu_subset, biostructures)
+                        isometry_loss = deep_rmsd_isometry_loss(mu_subset, biostructures)
                         # increase the total loss by the rmsd loss
-                        loss = loss + rmsd_loss
+                        loss = loss + isometry_loss
                     else:
-                        rmsd_loss = torch.tensor(0.0)
+                        isometry_loss = torch.tensor(0.0)
 
                     avg_losses.append(             loss.item())
                     avg_bce_losses.append(          bce.item())
                     avg_kld_losses.append(          kld.item())
                     avg_prop_bce_losses.append(prop_bce.item())
-                    avg_rmsd_losses.append(   rmsd_loss.item())
+                    avg_isometry_losses.append(   isometry_loss.item())
 
                 stop_run_time = perf_counter()
                 run_time = round(stop_run_time - start_run_time, 5)
@@ -480,7 +487,7 @@ class VAEShell():
                 
                 avg_kld      = np.mean(avg_kld_losses)
                 avg_prop_bce = np.mean(avg_prop_bce_losses)
-                avg_rmsd     = np.mean(avg_rmsd_losses)
+                avg_rmsd     = np.mean(avg_isometry_losses)
                 losses.append(avg_loss)
                 
                 if log:

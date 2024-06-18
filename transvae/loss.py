@@ -188,7 +188,7 @@ def im_kernel_sum(z1, z2, z_var, exclude_diag=True):
 
     return kernel_sum
 
-def deep_rmsd_isometry_loss(mu, x_structures, beta=1):
+def deep_isometry_loss(mu, sequences, pairwise_distances, beta=1, reduction='mean'):
     """
     Deep Isometry Loss. 
     Computes the difference in distance b/w latent space points 
@@ -198,52 +198,47 @@ def deep_rmsd_isometry_loss(mu, x_structures, beta=1):
     ----------
         mu : torch.tensor
              latent space points
-        x_structures : list
-                       list of inputted structures
+        target_distances : torch.tensor 
+                desired distances between latent space points
 
     Returns:
     -------
         loss : torch.tensor
                difference in distance b/w latent space points 
-               and their corresponding inputted points' aligned rmsds
+               and their corresponding target distance
     """
+    _n = len(mu)
+    target_distances = torch.zeros((_n*(_n-1))//2, dtype=torch.float32)
+    _dist_idx = 0
+    for i in range(len(sequences)):
+        for j in range(i+1, len(sequences)):
+            target_distances[_dist_idx] = pairwise_distances[sequences[i]+"_"+sequences[j]]
+            _dist_idx += 1
 
     # compute pairwise distances in the latent space using mu_subset
     # https://pytorch.org/docs/stable/generated/torch.cdist.html
-    n = len(mu)
-    _pairwise_distances = torch.zeros((n*(n-1))//2, dtype=torch.float32)
-    idx = 0
-    for i in range(n):
-        for j in range(i+1, n):
-            _pairwise_distances[idx] = torch.dist(mu[i], mu[j], p=2)
-            idx += 1
-                                
-    # _pairwise_distances = torch.cdist(mu, mu, p=2)
-    # _flattened = []
-    # for i in range(len(mu)):
-    #     for j in range(i+1,len(mu)):
-    #         _flattened.append(_pairwise_distances[i,j])
-    # print("making pairwise distance tensor")
-    # _pairwise_distances = torch.tensor(_flattened).flatten()
+    logging.info("computing pairwise distances between latent space points")
+    _n = len(mu)
+    _mu_pairwise_distances = torch.zeros((_n*(_n-1))//2, dtype=torch.float32)
+    _mu_idx = 0
+    for i in range(_n):
+        for j in range(i+1, _n):
+            _mu_pairwise_distances[_mu_idx] = torch.dist(mu[i], mu[j], p=2)
+            _mu_idx += 1
 
-    # compute pairwise rmsds between the structures
-    _rmsds = biostructure_to_rmsds(x_structures)
-    if len(_rmsds) == 1:
-        if _rmsds < 0: # then error
-            return torch.tensor(0.)
-    logging.info("making rmsd tensor")
-    _rmsds = torch.from_numpy(_rmsds).flatten()
+    if len(target_distances)!=len(_mu_pairwise_distances):
+        raise ValueError(f"Number of pairwise distances ({len(_mu_pairwise_distances)}) and target distances ({len(target_distances)}) do not match")
 
-    if len(_rmsds)!=len(_pairwise_distances):
-        raise ValueError(f"Number of pairwise distances ({len(_pairwise_distances)}) and rmsds ({len(_rmsds)}) do not match")
-
-    # ignore indices where RMSD = -1
-    _pairwise_distances = _pairwise_distances[_rmsds!=-1]
-    _rmsds = _rmsds[_rmsds!=-1]
+    # ignore indices where target_distances = -1
+    _mu_pairwise_distances = _mu_pairwise_distances[target_distances!=-1]
+    target_distances = target_distances[target_distances!=-1]
 
     # compute difference between pairwise distances and rmsds
-    _diff  = torch.abs(_pairwise_distances - _rmsds)
-    loss   = torch.mean(_diff)
+    _diff  = torch.pow(_mu_pairwise_distances - target_distances,2) # basically |d(z_i, z_j) - d(x_i, x_j)|
+    if reduction == 'mean':
+        loss = torch.mean(_diff)
+    else:
+        loss = _diff
 
     return loss
 
