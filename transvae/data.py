@@ -2,7 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import math, copy, time
+import math, copy, time, logging
 from torch.autograd import Variable
 
 from transvae.tvae_util import *
@@ -33,6 +33,7 @@ def vae_data_gen(data, max_len=126, name=None, props=None, char_dict=None):
             _extender = np.array([np.nan]*((n_seqs-n_props)*n_prop_outputs)).reshape(-1,n_prop_outputs)
             props = np.concatenate((props, _extender), axis=0)
     del data
+    logging.info(f"tokenizing sequences")
     condn1 = (not name == None)
     condn2 = ("peptide" in name)
     if condn1 and condn2:  #separate sequence into list of chars e.g. 'CC1c2'-->['C''C''1''c''2']
@@ -40,6 +41,7 @@ def vae_data_gen(data, max_len=126, name=None, props=None, char_dict=None):
     else: 
         seq_list = [tokenizer(x) for x in seq_list] 
     encoded_data = torch.empty((len(seq_list), max_len+1 + n_prop_outputs )) #empty tensor: (length of entire input data, max_seq_len + 2->{start & end})
+    logging.info(f"Encoding sequences with start tokens and padding")
     for j, seq in enumerate(seq_list):
         encoded_seq = encode_seq(seq, max_len, char_dict) #encode_smiles(smile,max_len,char_dict): char dict has format {"char":"number"}
         encoded_seq = [0] + encoded_seq
