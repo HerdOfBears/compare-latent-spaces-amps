@@ -99,6 +99,8 @@ def train_parser():
     ### Save Parameters
     parser.add_argument('--save_name', default=None, type=str)
     parser.add_argument('--save_freq', default=1, type=int)
+    parser.add_argument("--save_dir", type=str, default="checkpointz",
+                    help="Output directory where we save model checkpoints")
     
     ### Distributed Data Parallel addition
     parser.add_argument('--init_method', default=None, type=str)

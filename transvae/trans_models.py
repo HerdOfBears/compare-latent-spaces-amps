@@ -571,7 +571,7 @@ class VAEShell():
                         if rank ==0:
                             self.save(self.current_state, epoch_str)
                     else: 
-                        self.save(self.current_state, epoch_str)
+                        self.save(self.current_state, epoch_str,path=self.params.save_dir)
 
     ### Sampling and Decoding Functions
     def sample_from_memory(self, size, mode='rand', sample_dims=None, k=5):

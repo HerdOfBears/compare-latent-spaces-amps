@@ -52,7 +52,8 @@ def train(args):
               'DISCRIMINATOR_LAYERS' : args.discriminator_layers,
               'LOSS_METHOD': args.loss_method,
               'd_pp_out': args.d_pp_out,
-              'prediction_types': args.prediction_types,          
+              'prediction_types': args.prediction_types,
+              'save_dir': args.save_dir,
     }
 
     ### Load data, vocab and token weights
