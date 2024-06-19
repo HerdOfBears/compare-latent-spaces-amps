@@ -149,9 +149,10 @@ if __name__ == '__main__':
     parser = train_parser()
     args = parser.parse_args()
 
+    logfilename = args.logfile
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s - %(levelname)s - %(message)s',
-                        filename="train.log")
+                        filename=args.logfile)
     
     # quick fix of parser bug. parsing prediction_types as a list of strings rather than a list of characters
     if args.prediction_types is not None:
