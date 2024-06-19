@@ -212,7 +212,7 @@ def deep_isometry_loss(mu, sequences, pairwise_distances, beta=1, reduction='mea
     _dist_idx = 0
     for i in range(len(sequences)):
         for j in range(i+1, len(sequences)):
-            target_distances[_dist_idx] = pairwise_distances[sequences[i]+"_"+sequences[j]]
+            target_distances[_dist_idx] = pairwise_distances.get(sequences[i]+"_"+sequences[j],-1)
             _dist_idx += 1
 
     # compute pairwise distances in the latent space using mu_subset
