@@ -136,7 +136,9 @@ def train(args):
     esmfold=None # DEPRECATED on this branch
     vae.train(train_mols, test_mols, train_props, test_props,
               epochs=args.epochs, save_freq=args.save_freq,
-              use_isometry_loss=use_isometry_loss, pairwise_distances=pairwise_distances, structure_predictor=esmfold
+              use_isometry_loss=use_isometry_loss, 
+              pairwise_distances=pairwise_distances, 
+              inputs_w_distances=inputs_w_distances
     )
 
 
