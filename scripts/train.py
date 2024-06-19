@@ -74,6 +74,20 @@ def train(args):
     else:
         train_props = None
         test_props  = None
+    
+    if args.use_isometry_loss:
+        assert args.pairwise_distances is None, "ERROR: Must specify path to precomputed pairwise distances if using isometry loss"
+        if args.pairwise_distances is not None:
+            if args.pairwise_distances.endswith('.pkl'):
+                with open(args.pairwise_distances, 'rb') as f:
+                    pairwise_distances = pickle.load(f)
+                    # don't need to split into train/test because values
+                    # are accessed by seqi_seqj pairs.
+                    # seqi, seqj are sampled from the same set
+    else:
+        pairwise_distances = None
+
+    # Load char_dict and char_weights
     with open('data/char_dict_{}.pkl'.format(args.data_source), 'rb') as f:
         char_dict = pickle.load(f)
     char_weights = np.load('data/char_weights_{}.npy'.format(args.data_source))
@@ -89,19 +103,13 @@ def train(args):
     params['CHAR_DICT'] = char_dict
     params[ 'ORG_DICT'] =  org_dict
 
-    ### if using structure loss, load structure predictor
+    ### if using structure loss, load structure predictor  DEPRECATED ON THIS BRANCH FLAG!
     # args.structure_model_path
     # args.structure_loss
-    if "yes" in args.use_structure_loss:
-        print(f"Using structure model from {args.structure_model_path}")
-        if args.hardware == "gpu":
-            esmfold = StructurePredictor(args.structure_model_path, device="gpu")
-        else:
-            esmfold = StructurePredictor(args.structure_model_path)
-        use_structure_loss = True
+    if "yes" in args.use_isometry_loss:
+        use_isometry_loss = True
     else:
-        esmfold = None
-        use_structure_loss = False
+        use_isometry_loss = False
 
     ####################
     ### Train model
@@ -109,9 +117,10 @@ def train(args):
     vae = model_init(args, params)
     if args.checkpoint is not None:
         vae.load(args.checkpoint)
+    esmfold=None # DEPRECATED on this branch
     vae.train(train_mols, test_mols, train_props, test_props,
               epochs=args.epochs, save_freq=args.save_freq,
-              use_structure_loss=use_structure_loss, structure_predictor=esmfold
+              use_isometry_loss=use_isometry_loss, structure_predictor=esmfold
     )
 
 

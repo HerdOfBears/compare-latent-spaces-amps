@@ -113,8 +113,10 @@ def train_parser():
                         help='Numbers of features for linear layers in discriminator')
 
     # whether to use structure model
-    parser.add_argument("--use_structure_loss", choices=["yes","no"], default="no", type=str,
-                        help="Whether to use structure model for additional loss")
+    parser.add_argument("--use_isometry_loss", choices=["yes","no"], default="no", type=str,
+                        help="Whether to use isometry loss as an additional loss")
+    parser.add_argument("--use_weighted_isometry_loss", choices=["yes","no"], default="no", type=str,
+                        help="NOT IMPLEMENTED YET")
     parser.add_argument("--structure_model_path", type=str, default=None, 
                         help="Path to directory containing structure model weights")
 
