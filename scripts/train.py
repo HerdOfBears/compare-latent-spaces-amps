@@ -100,14 +100,12 @@ def train(args):
         assert args.train_inputs_w_distances is not None, "ERROR: Must specify path to training inputs with pairwise distances if using isometry loss"
         if args.train_inputs_w_distances is not None:
             logging.info('Loading train inputs with pairwise distances from {}'.format(args.train_inputs_w_distances))
-            with open(args.train_inputs_w_distances, 'rb') as f:
-                train_inputs_w_distances = pickle.load(f) 
+            train_inputs_w_distances = pd.read_csv(args.train_inputs_w_distances) 
         
         assert args.test_inputs_w_distances is not None, "ERROR: Must specify path to testing inputs with pairwise distances if using isometry loss"
         if args.test_inputs_w_distances is not None:
             logging.info('Loading test inputs with pairwise distances from {}'.format(args.test_inputs_w_distances))
-            with open(args.test_inputs_w_distances, 'rb') as f:
-                test_inputs_w_distances = pickle.load(f) 
+            test_inputs_w_distances = pd.read_csv(args.test_inputs_w_distances)
         inputs_w_distances = (train_inputs_w_distances, test_inputs_w_distances)
     else:
         pairwise_distances = None
