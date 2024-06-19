@@ -74,11 +74,17 @@ def train(args):
     else:
         train_props = None
         test_props  = None
-    
-    if args.use_isometry_loss:
+
+    if "yes" in args.use_isometry_loss:
+        use_isometry_loss = True
+    else:
+        use_isometry_loss = False
+
+    if use_isometry_loss:
         assert args.pairwise_distances is None, "ERROR: Must specify path to precomputed pairwise distances if using isometry loss"
         if args.pairwise_distances is not None:
             if args.pairwise_distances.endswith('.pkl'):
+                logging.info('Loading precomputed pairwise distances from {}'.format(args.pairwise_distances))
                 with open(args.pairwise_distances, 'rb') as f:
                     pairwise_distances = pickle.load(f)
                     # don't need to split into train/test because values
@@ -103,14 +109,6 @@ def train(args):
     params['CHAR_DICT'] = char_dict
     params[ 'ORG_DICT'] =  org_dict
 
-    ### if using structure loss, load structure predictor  DEPRECATED ON THIS BRANCH FLAG!
-    # args.structure_model_path
-    # args.structure_loss
-    if "yes" in args.use_isometry_loss:
-        use_isometry_loss = True
-    else:
-        use_isometry_loss = False
-
     ####################
     ### Train model
     ####################
@@ -120,7 +118,7 @@ def train(args):
     esmfold=None # DEPRECATED on this branch
     vae.train(train_mols, test_mols, train_props, test_props,
               epochs=args.epochs, save_freq=args.save_freq,
-              use_isometry_loss=use_isometry_loss, structure_predictor=esmfold
+              use_isometry_loss=use_isometry_loss, pairwise_distances=, structure_predictor=esmfold
     )
 
 
