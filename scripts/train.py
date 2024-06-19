@@ -81,6 +81,8 @@ def train(args):
         use_isometry_loss = False
 
     if use_isometry_loss:
+        print(f"Using isometry loss")
+        print(f"Pairwise distances: {args.pairwise_distances}")
         assert args.pairwise_distances is None, "ERROR: Must specify path to precomputed pairwise distances if using isometry loss"
         if args.pairwise_distances is not None:
             if args.pairwise_distances.endswith('.pkl'):
