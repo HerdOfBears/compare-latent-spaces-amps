@@ -119,6 +119,11 @@ def train_parser():
                         help="NOT IMPLEMENTED YET")
     parser.add_argument("--pairwise_distances", type=str, default=None,
                         help="Path to precomputed pairwise distances")
+    parser.add_argument("--train_inputs_w_distances", type=str, default=None,
+                        help="Path to train inputs with distances")
+    parser.add_argument("--test_inputs_w_distances", type=str, default=None,
+                    help="Path to test inputs with distances")
+    
     parser.add_argument("--structure_model_path", type=str, default=None, 
                         help="Path to directory containing structure model weights")
 

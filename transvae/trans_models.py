@@ -144,7 +144,7 @@ class VAEShell():
             self.optimizer.load_state_dict(self.current_state['optimizer_state_dict'])
             
     def train(self, train_mols, val_mols, train_props=None, val_props=None,
-              epochs=200, use_isometry_loss=False, pairwise_distances=None,structure_predictor=None,
+              epochs=200, use_isometry_loss=False, pairwise_distances=None, inputs_w_distances=None,
               save=True, save_freq=None, log=True, log_dir='trials'):
         """
         Train model and validate
@@ -165,11 +165,17 @@ class VAEShell():
             log_dir (str): Directory to store log files
         """
         torch.backends.cudnn.benchmark = True #optimize run-time for fixed model input size
-        
+        structure_predictor = None # DEPRECATED
         ### Prepare data iterators
         train_data = vae_data_gen(train_mols, self.src_len, self.name, train_props, char_dict=self.params['CHAR_DICT'])
         val_data   = vae_data_gen(  val_mols, self.src_len, self.name,   val_props, char_dict=self.params['CHAR_DICT'])
         
+        # special input for isometry learning
+        if use_isometry_loss:
+            assert inputs_w_distances is not None, "ERROR: Must provide inputs with distances"
+            train_data_w_distances = vae_data_gen(inputs_w_distances[0].values, self.src_len, self.name, None, char_dict=self.params['CHAR_DICT'])
+            val_data_w_distances   = vae_data_gen(inputs_w_distances[1].values, self.src_len, self.name, None, char_dict=self.params['CHAR_DICT'])
+
         #SPECIAL DATA INPUT FOR DDP
         if self.params['DDP']:
             train_sampler = torch.utils.data.distributed.DistributedSampler(train_data, shuffle=True)
@@ -251,6 +257,22 @@ class VAEShell():
                     batch_data = data[i*self.chunk_size:(i+1)*self.chunk_size,:]
                     mols_data  = batch_data[:,                        :-self.params["d_pp_out"]]
                     props_data = batch_data[:,-self.params["d_pp_out"]:                        ]
+
+                    # sample sequences w distances
+                    if use_isometry_loss:
+                        n_to_grab = max(5, int(self.chunk_size*0.1) ) # grab 10% of the batch, or 5
+                        idxs = np.random.choice(len(train_data_w_distances), n_to_grab, replace=False)
+                        batch_data_w_distances = np.take(
+                            train_data_w_distances, idxs, axis=0
+                        )
+                        mols_data_w_distances = batch_data_w_distances[:, :-1]
+
+                        # now replace some of the sequences with the ones with distances
+                        n_to_replace = n_to_grab
+                        replace_idxs = np.random.choice(self.chunk_size, n_to_replace, replace=False)
+                        mols_data[replace_idxs] = mols_data_w_distances
+
+                    #Move data to GPU if available
                     if 'gpu' in self.params['HARDWARE']:
                         mols_data  =  mols_data.cuda()
                         props_data = props_data.cuda()
@@ -371,7 +393,9 @@ class VAEShell():
                     log_file.close()
             train_loss = np.mean(losses)
 
-            ### Val Loop
+            ##############################
+            ### Validation Loop
+            ##############################
             self.model.eval()
             losses = []
             for j, data in enumerate(val_iter):
@@ -388,6 +412,22 @@ class VAEShell():
                     batch_data = data[i*self.chunk_size:(i+1)*self.chunk_size,:]
                     mols_data  = batch_data[:,                        :-self.params["d_pp_out"]]
                     props_data = batch_data[:,-self.params["d_pp_out"]:                        ]
+                    
+                    # sample sequences w distances
+                    if use_isometry_loss:
+                        n_to_grab = max(5, int(self.chunk_size*0.1) ) # grab 10% of the batch, or 5
+                        idxs = np.random.choice(len(val_data_w_distances), n_to_grab, replace=False)
+                        batch_data_w_distances = np.take(
+                            val_data_w_distances, idxs, axis=0
+                        )
+                        mols_data_w_distances = batch_data_w_distances[:, :-1]
+
+                        # now replace some of the sequences with the ones with distances
+                        n_to_replace = n_to_grab
+                        replace_idxs = np.random.choice(self.chunk_size, n_to_replace, replace=False)
+                        mols_data[replace_idxs] = mols_data_w_distances
+
+                    # move to GPU if available
                     if 'gpu' in self.params['HARDWARE']:
                         mols_data = mols_data.cuda()
                         props_data = props_data.cuda()

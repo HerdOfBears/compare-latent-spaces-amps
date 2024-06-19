@@ -83,6 +83,7 @@ def train(args):
     if use_isometry_loss:
         logging.info("Using isometry loss")
         logging.info(f"Loading precomputed pairwise distances from {args.pairwise_distances}")
+        # grab target distances ('labels')
         assert args.pairwise_distances is not None, "ERROR: Must specify path to precomputed pairwise distances if using isometry loss"
         if args.pairwise_distances is not None:
             if args.pairwise_distances.endswith('.pkl'):
@@ -92,8 +93,25 @@ def train(args):
                     # don't need to split into train/test because values
                     # are accessed by seqi_seqj pairs.
                     # seqi, seqj are sampled from the same set
+        
+        # also grab subset of inputs that have pairwise distances
+        # (i.e. the subset of inputs that were used to compute the distances)
+        # in our peptide case only 1% of the data has corresponding pairwise distances
+        assert args.train_inputs_w_distances is not None, "ERROR: Must specify path to training inputs with pairwise distances if using isometry loss"
+        if args.train_inputs_w_distances is not None:
+            logging.info('Loading train inputs with pairwise distances from {}'.format(args.train_inputs_w_distances))
+            with open(args.train_inputs_w_distances, 'rb') as f:
+                train_inputs_w_distances = pickle.load(f) 
+        
+        assert args.test_inputs_w_distances is not None, "ERROR: Must specify path to testing inputs with pairwise distances if using isometry loss"
+        if args.test_inputs_w_distances is not None:
+            logging.info('Loading test inputs with pairwise distances from {}'.format(args.test_inputs_w_distances))
+            with open(args.test_inputs_w_distances, 'rb') as f:
+                test_inputs_w_distances = pickle.load(f) 
+        inputs_w_distances = (train_inputs_w_distances, test_inputs_w_distances)
     else:
         pairwise_distances = None
+        inputs_w_distances = None
 
     # Load char_dict and char_weights
     with open('data/char_dict_{}.pkl'.format(args.data_source), 'rb') as f:
