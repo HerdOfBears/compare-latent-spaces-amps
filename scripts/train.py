@@ -130,10 +130,12 @@ def train(args):
     ####################
     ### Train model
     ####################
+    logging.info("Initializing model")
     vae = model_init(args, params)
     if args.checkpoint is not None:
         vae.load(args.checkpoint)
     esmfold=None # DEPRECATED on this branch
+    logging.info("Training model...")
     vae.train(train_mols, test_mols, train_props, test_props,
               epochs=args.epochs, save_freq=args.save_freq,
               use_isometry_loss=use_isometry_loss, 

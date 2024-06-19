@@ -1,5 +1,6 @@
 import os
 import json
+import logging
 from time import perf_counter
 import numpy as np
 import matplotlib.pyplot as plt
@@ -172,6 +173,7 @@ class VAEShell():
         
         # special input for isometry learning
         if use_isometry_loss:
+            logging.info(f"generating encoded sequences for isometry loss")
             assert inputs_w_distances is not None, "ERROR: Must provide inputs with distances"
             train_data_w_distances = vae_data_gen(inputs_w_distances[0].values, self.src_len, self.name, None, char_dict=self.params['CHAR_DICT'])
             val_data_w_distances   = vae_data_gen(inputs_w_distances[1].values, self.src_len, self.name, None, char_dict=self.params['CHAR_DICT'])
@@ -238,7 +240,9 @@ class VAEShell():
                     dist.barrier()
         
             epoch_start_time= perf_counter()
+            ##################################
             ### Train Loop
+            ##################################
             self.model.train()
             losses = []
             beta = kl_annealer(epoch)
