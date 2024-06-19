@@ -117,6 +117,8 @@ def train_parser():
                         help="Whether to use isometry loss as an additional loss")
     parser.add_argument("--use_weighted_isometry_loss", choices=["yes","no"], default="no", type=str,
                         help="NOT IMPLEMENTED YET")
+    parser.add_argument("--pairwise_distances", type=str, default=None,
+                        help="Path to precomputed pairwise distances")
     parser.add_argument("--structure_model_path", type=str, default=None, 
                         help="Path to directory containing structure model weights")
 
