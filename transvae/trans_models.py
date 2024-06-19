@@ -309,18 +309,12 @@ class VAEShell():
                         # must decode sequences in batch
                         ######################
                         _sequences = mols_data[_idx]
-                        _sequences = decode_seq(_sequences, self.params['CHAR_DICT'])
-                        distance_targets = torch.zeros(_total_n_pairs_to_use)
-                        _dist_idx = 0
-                        for i in range(len(_sequences)):
-                            for j in range(i+1, len(_sequences)):
-                                distance_targets[_dist_idx] = pairwise_distances[_sequences[i]+"_"+_sequences[j]]
-                                _dist_idx += 1
+                        _sequence_subset = decode_seq(_sequences, self.params['CHAR_DICT'])
 
                         # latent points
                         mu_subset = mu[_idx]
                         
-                        isometry_loss = deep_isometry_loss(mu_subset, distance_targets)
+                        isometry_loss = deep_isometry_loss(mu_subset, _sequence_subset, pairwise_distances)
                         # increase the total loss by the rmsd loss
                         loss = loss + isometry_loss
                     else:
