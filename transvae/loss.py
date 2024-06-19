@@ -234,7 +234,8 @@ def deep_isometry_loss(mu, sequences, pairwise_distances, beta=1, reduction='mea
     target_distances = target_distances[target_distances!=-1]
 
     logging.info(f"Number of pairwise distances: {_mu_pairwise_distances.shape[0]}")
-    logging.info(f"min, max pairwise distances: {_mu_pairwise_distances.min()}, {_mu_pairwise_distances.max()}")
+    if _mu_pairwise_distances.shape[0] > 0:
+        logging.info(f"min, max pairwise distances: {_mu_pairwise_distances.min()}, {_mu_pairwise_distances.max()}")
 
     # compute difference between pairwise distances and rmsds
     _diff  = torch.pow(_mu_pairwise_distances - target_distances,2) # basically |d(z_i, z_j) - d(x_i, x_j)|
