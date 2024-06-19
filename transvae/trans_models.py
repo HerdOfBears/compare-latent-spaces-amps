@@ -330,7 +330,7 @@ class VAEShell():
                         _choose_n = (1 + np.sqrt(1 + 8*_total_n_pairs_to_use))/2
                         _choose_n = int(_choose_n)
                         _idx = np.random.choice(len(mu), _choose_n, replace=False)
-                        
+                        _idx = replace_idxs # use the same indices as above
                         ######################
                         # get distance_targets
                         # must decode sequences in batch
@@ -485,7 +485,7 @@ class VAEShell():
                         _choose_n = (1 + np.sqrt(1 + 8*_total_n_pairs_to_use))/2
                         _choose_n = int(_choose_n)
                         _idx = np.random.choice(len(mu), _choose_n, replace=False)
-                        
+                        _idx = replace_idxs # use the same indices as above
                         ######################
                         # get distance_targets
                         # must decode sequences in batch
