@@ -275,6 +275,7 @@ class VAEShell():
                         n_to_replace = n_to_grab
                         replace_idxs = np.random.choice(self.chunk_size, n_to_replace, replace=False)
                         mols_data[replace_idxs] = mols_data_w_distances
+                        logging.info(f"grabbed {n_to_grab} sequences with distances")
 
                     #Move data to GPU if available
                     if 'gpu' in self.params['HARDWARE']:
