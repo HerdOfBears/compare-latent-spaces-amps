@@ -100,7 +100,7 @@ class TransVAE(VAEShell):
         generator = Generator(self.params['d_model'], self.vocab_size)
         if self.params['property_predictor']:
             property_predictor = PropertyPredictor(self.params['d_pp'], self.params['depth_pp'], self.params['d_latent'],
-                                                   self.params['type_pp'])
+                                                   self.params['type_pp'], self.params["d_pp_out"], self.params["prediction_types"])
         else:
             property_predictor = None
         self.model = EncoderDecoder(encoder, decoder, src_embed, tgt_embed, generator, property_predictor)
