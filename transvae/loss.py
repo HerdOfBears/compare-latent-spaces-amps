@@ -65,8 +65,32 @@ def trans_vae_loss(x, x_out, mu, logvar, true_len, pred_len, true_prop, pred_pro
         if "decision_tree" in self.params["type_pp"]:
             print(pred_prop)
         else: 
+            # check prediction types. 
+            # when None, assume binary classification
+            # when not None, loop through each prediction type
+            if (self.params["prediction_types"] is None):
+                bce_prop = F.binary_cross_entropy(
+                    pred_prop.squeeze(-1)[~torch.isnan(true_prop)], 
+                    true_prop[            ~torch.isnan(true_prop)]
+                )
+            else:
+                prop_losses = []
+                for i in range(pred_prop.shape[1]):
+                    if self.params["prediction_types"][i] == "classification":
+                        _prop_loss = F.cross_entropy(
+                            pred_prop[:,i][~torch.isnan(true_prop[:,i])], 
+                            true_prop[:,i][~torch.isnan(true_prop[:,i])]
+                        )
+                        prop_losses.append( _prop_loss )
+                    else:
+                        _prop_loss = F.mse_loss(
+                            pred_prop[:,i][~torch.isnan(true_prop[:,i])], 
+                            true_prop[:,i][~torch.isnan(true_prop[:,i])]
+                        )
+                        prop_losses.append( _prop_loss )
+                bce_prop = torch.sum(torch.stack(prop_losses))
             #bce_prop = F.binary_cross_entropy(pred_prop.squeeze(-1), true_prop)
-            bce_prop = F.cross_entropy(pred_prop.squeeze(-1), true_prop)
+            # bce_prop = F.cross_entropy(pred_prop.squeeze(-1), true_prop)
     else:
         bce_prop = torch.tensor(0.)
     if torch.isnan(KLD):
