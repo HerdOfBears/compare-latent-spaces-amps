@@ -240,6 +240,10 @@ class VAEShell():
                     dist.barrier()
         
             epoch_start_time= perf_counter()
+
+            # linearly ramp up the isometry loss
+            isometry_loss_weighting = min(epochs//2, epoch*(epochs//2) ) 
+
             ##################################
             ### Train Loop
             ##################################
@@ -343,7 +347,7 @@ class VAEShell():
                         
                         isometry_loss = deep_isometry_loss(mu_subset, _sequence_subset, pairwise_distances)
                         # increase the total loss by the rmsd loss
-                        loss = loss + isometry_loss
+                        loss = loss + isometry_loss_weighting*isometry_loss
                     else:
                         isometry_loss = torch.tensor(0.0)
 
