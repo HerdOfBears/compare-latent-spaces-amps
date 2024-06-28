@@ -345,7 +345,7 @@ class VAEShell():
                         # latent points
                         mu_subset = mu[_idx]
                         
-                        isometry_loss = deep_isometry_loss(mu_subset, _sequence_subset, pairwise_distances)
+                        isometry_loss = deep_isometry_loss(mu_subset, _sequence_subset, pairwise_distances, beta=beta)
                         # increase the total loss by the rmsd loss
                         loss = loss + isometry_loss_weighting*isometry_loss
                     else:
@@ -500,7 +500,7 @@ class VAEShell():
                         # latent points
                         mu_subset = mu[_idx]
                         
-                        isometry_loss = deep_isometry_loss(mu_subset, _sequence_subset, pairwise_distances)
+                        isometry_loss = deep_isometry_loss(mu_subset, _sequence_subset, pairwise_distances,beta=beta)
                         # increase the total loss by the rmsd loss
                         loss = loss + isometry_loss
                     else:
@@ -606,7 +606,7 @@ class VAEShell():
                     z[:,d] = torch.randn(size)
         return z
 
-    def greedy_decode(self, mem, print_step=100 ,src_mask=None):
+    def greedy_decode(self, mem, print_step=100 ,src_mask=None, return_probabilities=False):
         """
         Greedy decode from model memory if the model is a transformer
         Otherwise just decode from memory
@@ -623,6 +623,9 @@ class VAEShell():
         decoded = torch.ones(mem.shape[0],1).fill_(start_symbol).long()
         tgt = torch.ones(mem.shape[0],max_len+1).fill_(start_symbol).long()
         
+        if return_probabilities:
+            probabilities = torch.ones((mem.shape[0], max_len, self.vocab_size-1)) # -1 to remove predicting start token 
+
         if src_mask is None and self.model_type == 'transformer':
             mask_lens = self.model.encoder.predict_mask_length(mem)
             src_mask = torch.zeros((mem.shape[0], 1, self.src_len+1))
@@ -651,15 +654,22 @@ class VAEShell():
             out = self.model.generator(out)
             prob = F.softmax(out[:,i,:], dim=-1)
             _, next_word = torch.max(prob, dim=1)
-            next_word += 1
+            next_word += 1  # to ignore predicting a start token
             tgt[:,i+1] = next_word
             if self.model_type == 'transformer':
                 next_word = next_word.unsqueeze(1)
                 decoded = torch.cat([decoded, next_word], dim=1)
+            
+            if return_probabilities:
+                probabilities[:,i,:] = prob
+        
         decoded = tgt[:,1:]
-        return decoded
+        if return_probabilities:
+            return decoded, probabilities    
+        else:
+            return decoded
 
-    def reconstruct(self, data, method='greedy', log=True, return_mems=True, return_str=True):
+    def reconstruct(self, data, method='greedy', log=True, return_mems=True, return_str=True, return_probabilities=False):
         """
         Method for encoding input smiles into memory and decoding back
         into smiles
@@ -673,6 +683,8 @@ class VAEShell():
             return_mems (bool): If true, returns memory vectors in addition to decoded SMILES
             return_str (bool): If true, translates decoded vectors into SMILES strings. If false
                                returns tensor of token ids
+            return_probabilities (bool): If true, returns probabilities of each token at each position
+                                        useful for computing perplexity/entropy/etc.
         Returns:
             decoded_smiles (list): Decoded smiles data - either decoded SMILES strings or tensor of
                                    token ids
@@ -727,7 +739,13 @@ class VAEShell():
                     
                     ### Decode logic
                     if method == 'greedy':
-                        decoded = self.greedy_decode(mem, src_mask=src_mask)
+                        decoded = self.greedy_decode(
+                            mem, 
+                            src_mask=src_mask, 
+                            return_probabilities=return_probabilities
+                        )
+                        if return_probabilities:
+                            decoded, probabilities = decoded # unpack tuple
                     else:
                         decoded = None
 
@@ -737,8 +755,12 @@ class VAEShell():
                     else:
                         decoded_sequences.append(decoded)
 
-            if return_mems:
+            if return_mems and not return_probabilities:
                 return decoded_sequences, decoded_properties, mems.detach().numpy()
+            elif not return_mems and return_probabilities:
+                return decoded_sequences, decoded_properties, probabilities
+            elif return_mems and return_probabilities:
+                return decoded_sequences, decoded_properties, mems.detach().numpy(), probabilities
             else:
                 return decoded_sequences, decoded_properties
 

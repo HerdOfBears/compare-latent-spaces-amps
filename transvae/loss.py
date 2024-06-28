@@ -268,7 +268,7 @@ def deep_isometry_loss(mu, sequences, pairwise_distances, beta=1, reduction='mea
     else:
         loss = _diff
 
-    return loss
+    return beta*loss
 
 def triplet_loss():
     pass
