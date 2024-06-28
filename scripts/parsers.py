@@ -56,12 +56,16 @@ def model_init(args, params={}):
 def train_parser():
     print("train_parser function called /n")
     parser = argparse.ArgumentParser()
+
+    ###############################
     ### Architecture Parameters
     parser.add_argument('--model', choices=['transvae', 'rnnattn', 'rnn', 'aae', 'wae'],
                         required=True, type=str)
     parser.add_argument('--d_model', default=128, type=int)
     parser.add_argument('--d_feedforward', default=128, type=int)
     parser.add_argument('--d_latent', default=128, type=int)
+    
+    # property predictor parameters
     parser.add_argument('--property_predictor', choices=['ON', 'OFF'], default='OFF', type=str)
     parser.add_argument('--d_property_predictor', default=2, type=int)
     parser.add_argument('--depth_property_predictor', default=2, type=int)
@@ -71,7 +75,10 @@ def train_parser():
                         help='List of prediction types for property predictor.\n\
                             Must be list of "classification" and/or "regression"\
                             in the same order as the properties in the properties file')
+    
     parser.add_argument('--hardware', choices=['cpu', 'gpu'], required=True, type=str)
+
+    ###############################
     ### Hyperparameters
     parser.add_argument('--batch_size', default=2000, type=int)
     parser.add_argument('--batch_chunks', default=1, type=int)
@@ -83,6 +90,8 @@ def train_parser():
     parser.add_argument('--warmup_steps', default=10000, type=int)
     parser.add_argument('--eps_scale', default=1, type=float)
     parser.add_argument('--epochs', default=20, type=int)
+    
+    ###############################
     ### Data Parameters
     parser.add_argument('--data_source', choices=['zinc', 'pubchem','peptide','peptides_renaud','custom','cdd','peptides_2024'],
                         required=True, type=str)
@@ -93,15 +102,18 @@ def train_parser():
     parser.add_argument('--vocab_path', default=None, type=str)
     parser.add_argument('--char_weights_path', default=None, type=str)
     
+    ###############################
     ### Load Parameters
     parser.add_argument('--checkpoint', default=None, type=str)
     
+    ###############################
     ### Save Parameters
     parser.add_argument('--save_name', default=None, type=str)
     parser.add_argument('--save_freq', default=1, type=int)
     parser.add_argument("--save_dir", type=str, default="checkpointz",
                     help="Output directory where we save model checkpoints")
     
+    ###############################
     ### Distributed Data Parallel addition
     parser.add_argument('--init_method', default=None, type=str)
     parser.add_argument('--dist_backend', default='nccl', type=str)
@@ -114,6 +126,7 @@ def train_parser():
     parser.add_argument('--discriminator_layers', nargs='+', type=int, default=[640, 256], 
                         help='Numbers of features for linear layers in discriminator')
 
+    ###############################
     # whether to use isometry loss
     parser.add_argument("--use_isometry_loss", choices=["yes","no"], default="no", type=str,
                         help="Whether to use isometry loss as an additional loss")
