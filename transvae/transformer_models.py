@@ -255,7 +255,7 @@ class VAEDecoder(nn.Module):
     def forward(self, x, mem, src_mask, tgt_mask):
         ### Deconvolutional bottleneck (up-sampling)
         if not self.bypass_bottleneck:
-            mem = F.relu(self.linear(mem))
+            mem = F.leaky_relu(self.linear(mem))
             mem = mem.view(-1, 64, self.conv_out)
             mem = self.deconv_bottleneck(mem)
             mem = mem.permute(0, 2, 1)
@@ -272,7 +272,7 @@ class VAEDecoder(nn.Module):
     def forward_w_attn(self, x, mem, src_mask, tgt_mask):
         "Forward pass that saves attention weights"
         if not self.bypass_bottleneck:
-            mem = F.relu(self.linear(mem))
+            mem = F.leaky_relu(self.linear(mem))
             mem = mem.view(-1, 64, self.conv_out)
             mem = self.deconv_bottleneck(mem)
             mem = mem.permute(0, 2, 1)
@@ -355,4 +355,4 @@ class PositionwiseFeedForward(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
-        return self.w_2(self.dropout(F.relu(self.w_1(x))))
+        return self.w_2(self.dropout(F.leaky_relu(self.w_1(x))))

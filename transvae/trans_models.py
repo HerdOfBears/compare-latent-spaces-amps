@@ -242,7 +242,7 @@ class VAEShell():
             epoch_start_time= perf_counter()
 
             # linearly ramp up the isometry loss
-            isometry_loss_weighting = min(epochs//2, epoch*(epochs//2) ) 
+            isometry_loss_weighting = 1.0#min(epochs//2, epoch*(epochs//2) ) 
 
             ##################################
             ### Train Loop
@@ -903,7 +903,7 @@ class ConvBottleneck(nn.Module):
 
     def forward(self, x):
         for conv in self.conv_layers:
-            x = F.relu(conv(x))
+            x = F.leaky_relu(conv(x))
         return x
 
 class DeconvBottleneck(nn.Module):
@@ -933,7 +933,7 @@ class DeconvBottleneck(nn.Module):
 
     def forward(self, x):
         for deconv in self.deconv_layers:
-            x = F.relu(deconv(x))
+            x = F.leaky_relu(deconv(x))
         return x
 
 ############## Generator #################
@@ -999,7 +999,7 @@ class PropertyPredictor(nn.Module):
                 if condn1:
                     x = self._last_layer_nn(x, prediction_layer)
                 else:
-                    x = torch.relu(prediction_layer(x))
+                    x = torch.leaky_relu(prediction_layer(x))
         return x
 
 ############## Embedding Layers ###################
