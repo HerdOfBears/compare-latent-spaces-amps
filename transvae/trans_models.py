@@ -345,7 +345,8 @@ class VAEShell():
                         # latent points
                         mu_subset = mu[_idx]
                         
-                        isometry_loss = deep_isometry_loss(mu_subset, _sequence_subset, pairwise_distances, beta=beta)
+                        # isometry_loss = deep_isometry_loss(mu_subset, _sequence_subset, pairwise_distances, beta=beta)
+                        isometry_loss = deep_isometry_loss(mu_subset, _sequence_subset, pairwise_distances)
                         # increase the total loss by the rmsd loss
                         loss = loss + isometry_loss_weighting*isometry_loss
                     else:
@@ -500,7 +501,8 @@ class VAEShell():
                         # latent points
                         mu_subset = mu[_idx]
                         
-                        isometry_loss = deep_isometry_loss(mu_subset, _sequence_subset, pairwise_distances,beta=beta)
+                        # isometry_loss = deep_isometry_loss(mu_subset, _sequence_subset, pairwise_distances,beta=beta)
+                        isometry_loss = deep_isometry_loss(mu_subset, _sequence_subset, pairwise_distances)
                         # increase the total loss by the rmsd loss
                         loss = loss + isometry_loss
                     else:
