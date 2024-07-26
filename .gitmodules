@@ -1,0 +1,3 @@
+[submodule "oracles/Antimicrobial-Peptides"]
+	path = oracles/Antimicrobial-Peptides
+	url = https://github.com/zswitten/Antimicrobial-Peptides.git
