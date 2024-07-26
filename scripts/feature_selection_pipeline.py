@@ -6,7 +6,6 @@ import peptides
 import propy
 
 import matplotlib.pyplot as plt
-import seaborn as sns
 
 import pickle as pkl
 import os
