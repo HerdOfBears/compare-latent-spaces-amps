@@ -25,7 +25,7 @@ def load_data(data_dir):
 
     propy_des = pd.read_csv(data_dir+"train_propy_des.csv")
 
-    ecoli_train_with_c = pd.read_pickle(f'{data_dir}Antimicrobial-Peptides/models/Saved_variables/ecoli_train_with_c_df.pkl')
+    ecoli_train_with_c = pd.read_pickle(f'{data_dir}ecoli_train_with_c_df.pkl')
     train_Y = ecoli_train_with_c.value
 
     input_data = propy_des.dropna()
