@@ -7,6 +7,7 @@ import propy
 
 import matplotlib.pyplot as plt
 
+import argparse
 import pickle as pkl
 import os
 import time
@@ -75,4 +76,13 @@ def main(data_dir, N_CPUS=1):
 
 
 if __name__ == "__main__":
-    main()
+    # take data directory and number of cpus as command-line arguments
+    parser = argparse.ArgumentParser(description="Run mRMR feature selection")
+    parser.add_argument("data_dir", type=str, help="path to the data directory")
+    parser.add_argument("n_cpus", type=int, help="number of cpus to use")
+    args = parser.parse_args()
+    data_dir = args.data_dir
+    N_CPUS = args.n_cpus
+
+
+    main(data_dir, N_CPUS=N_CPUS)
