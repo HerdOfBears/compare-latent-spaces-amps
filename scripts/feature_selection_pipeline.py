@@ -44,7 +44,7 @@ def load_data(data_dir):
 
     return input_data, train_Y
 
-def main():
+def main(data_dir, N_CPUS=1):
 
     # gets training and testing data, as used by Witten & Witten (2019). 
 
@@ -55,10 +55,10 @@ def main():
 
     input_data, train_Y = load_data(data_dir)
 
-    t0 = time.time()
     
+    t0 = time.time()
     results, relevancies, pairwise_redundancies = perform_mRMR(
-        input_data, train_Y, max_features=input_data.shape[1], verbose=True
+        input_data, train_Y, N_CPUS=N_CPUS, max_features=input_data.shape[1], verbose=True
     )
     
     print(f"{time.time()-t0}s")
