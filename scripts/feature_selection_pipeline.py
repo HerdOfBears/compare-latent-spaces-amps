@@ -19,7 +19,7 @@ from sklearn.model_selection import train_test_split, KFold, ShuffleSplit
 
 from sklearn.feature_selection import mutual_info_regression
 
-from ..oracles.mic_svr import compute_propy_properties, VS_SSVR, perform_mRMR
+from transvae.mic_svr import compute_propy_properties, VS_SSVR, perform_mRMR
 
 def load_data(data_dir):
 
