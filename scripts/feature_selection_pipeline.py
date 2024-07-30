@@ -22,10 +22,16 @@ from sklearn.feature_selection import mutual_info_regression
 
 from transvae.mic_svr import compute_propy_properties, VS_SSVR, perform_mRMR
 
-def load_data(data_dir):
+def load_data(data_dir, data_type="mic"):
 
-    propy_des = pd.read_csv(data_dir+"train_propy_des.csv")
-
+    # load data as used by Witten & Witten (2019)
+    if data_type=="mic":
+        propy_des = pd.read_csv(data_dir+"train_propy_des.csv")
+    elif data_type=="hemolytik":
+        propy_des = pd.read_csv(data_dir+"train_propy_des_hemolytik.csv")
+    else:
+        raise ValueError("data_type must be either 'mic' or 'hemolytik'")
+    
     ecoli_train_with_c = pd.read_pickle(f'{data_dir}ecoli_train_with_c_df.pkl')
     train_Y = ecoli_train_with_c.value
 
@@ -45,7 +51,7 @@ def load_data(data_dir):
 
     return input_data, train_Y
 
-def main(data_dir, N_CPUS=1):
+def main(data_dir, N_CPUS=1, data_type="mic"):
 
     # gets training and testing data, as used by Witten & Witten (2019). 
 
@@ -54,7 +60,7 @@ def main(data_dir, N_CPUS=1):
     else:
         data_dir = "oracles/"
 
-    input_data, train_Y = load_data(data_dir)
+    input_data, train_Y = load_data(data_dir, data_type=data_type)
 
     
     t0 = time.time()
@@ -70,7 +76,7 @@ def main(data_dir, N_CPUS=1):
         "relevancies": relevancies,
         "pairwise_redundancies": pairwise_redundancies
     }
-    with open(data_dir+"mrmr_results.pkl", "wb") as f:
+    with open(data_dir+f"mrmr_results_{data_type}.pkl", "wb") as f:
         pkl.dump(mrmr_results, f)
     print("done mRMR")
 
@@ -78,11 +84,17 @@ def main(data_dir, N_CPUS=1):
 if __name__ == "__main__":
     # take data directory and number of cpus as command-line arguments
     parser = argparse.ArgumentParser(description="Run mRMR feature selection")
-    parser.add_argument("data_dir", type=str, help="path to the data directory")
-    parser.add_argument("n_cpus", type=int, help="number of cpus to use")
+    parser.add_argument("--data_dir", type=str, help="path to the data directory")
+    parser.add_argument("--n_cpus", type=int, help="number of cpus to use")
+    parser.add_argument("--data_type", type=str, help="data to use (mic or hemolytik)")
+    
     args = parser.parse_args()
     data_dir = args.data_dir
     N_CPUS = args.n_cpus
+    data_type = args.data_type
 
+    # check that data_type is in ["mic", "hemolytik"]
+    if data_type not in ["mic", "hemolytik"]:
+        raise ValueError("data_type must be either 'mic' or 'hemolytik'")
 
-    main(data_dir, N_CPUS=N_CPUS)
+    main(data_dir, N_CPUS=N_CPUS, data_type=data_type)
