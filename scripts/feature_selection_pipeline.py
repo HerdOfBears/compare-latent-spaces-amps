@@ -27,13 +27,17 @@ def load_data(data_dir, data_type="mic"):
     # load data as used by Witten & Witten (2019)
     if data_type=="mic":
         propy_des = pd.read_csv(data_dir+"train_propy_des.csv")
+
+        ecoli_train_with_c = pd.read_pickle(f'{data_dir}ecoli_train_with_c_df.pkl')
+        train_Y = ecoli_train_with_c.value
     elif data_type=="hemolytik":
         propy_des = pd.read_csv(data_dir+"train_propy_des_hemolytik.csv")
+
+        hemolytik_train = pd.read_csv(data_dir+"train_log10_HC50.csv",index=False)
+        train_Y = hemolytik_train.log10_HC50
     else:
         raise ValueError("data_type must be either 'mic' or 'hemolytik'")
     
-    ecoli_train_with_c = pd.read_pickle(f'{data_dir}ecoli_train_with_c_df.pkl')
-    train_Y = ecoli_train_with_c.value
 
     input_data = propy_des.dropna()
     train_Y = train_Y[(propy_des.isna().sum(axis=1)==0).values]
