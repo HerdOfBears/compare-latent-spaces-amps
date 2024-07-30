@@ -33,7 +33,7 @@ def load_data(data_dir, data_type="mic"):
     elif data_type=="hemolytik":
         propy_des = pd.read_csv(data_dir+"train_propy_des_hemolytik.csv")
 
-        hemolytik_train = pd.read_csv(data_dir+"train_log10_HC50.csv",index=False)
+        hemolytik_train = pd.read_csv(data_dir+"train_log10_HC50.csv")
         train_Y = hemolytik_train.log10_HC50
     else:
         raise ValueError("data_type must be either 'mic' or 'hemolytik'")
