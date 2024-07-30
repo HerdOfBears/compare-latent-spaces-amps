@@ -100,5 +100,7 @@ if __name__ == "__main__":
     # check that data_type is in ["mic", "hemolytik"]
     if data_type not in ["mic", "hemolytik"]:
         raise ValueError("data_type must be either 'mic' or 'hemolytik'")
+    
+    print(f"{data_dir=}, {N_CPUS=}, {data_type=}")
 
     main(data_dir, N_CPUS=N_CPUS, data_type=data_type)
