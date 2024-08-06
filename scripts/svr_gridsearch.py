@@ -2,45 +2,13 @@ import numpy as np
 import pandas as pd
 import time
 import argparse
+import pickle as pkl
 
 from joblib import Parallel, delayed
 from sklearn.svm import SVR
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import ShuffleSplit
-
-def load_data(data_dir, data_type="mic"):
-
-    # load data as used by Witten & Witten (2019)
-    if data_type=="mic":
-        propy_des = pd.read_csv(data_dir+"train_propy_des.csv")
-
-        ecoli_train_with_c = pd.read_pickle(f'{data_dir}ecoli_train_with_c_df.pkl')
-        train_Y = ecoli_train_with_c.value
-    elif data_type=="hemolytik":
-        propy_des = pd.read_csv(data_dir+"train_propy_des_hemolytik.csv")
-
-        hemolytik_train = pd.read_csv(data_dir+"train_log10_HC50.csv")
-        train_Y = hemolytik_train.log10_HC50
-    else:
-        raise ValueError("data_type must be either 'mic' or 'hemolytik'")
-    
-
-    input_data = propy_des.dropna()
-    train_Y = train_Y[(propy_des.isna().sum(axis=1)==0).values]
-
-    train_Y = train_Y.loc[
-        ((input_data.sequence.str.len()>4) &
-        (input_data.sequence.str.len()<101)).values
-    ]
-
-    input_data = input_data.loc[
-        (input_data.sequence.str.len()>4) &
-        (input_data.sequence.str.len()<101)
-    ]
-    input_data = input_data.loc[:,input_data.columns[1:]]
-
-    return input_data, train_Y
 
 def evaluate_params(c_, epsilon_, X, y, important_feature_cols, shuffler, scaler, n_splits, kernel='rbf'):
     svr_ = SVR(kernel=kernel, C=c_, epsilon=epsilon_)
@@ -131,7 +99,7 @@ if __name__=="__main__":
     
     parser = argparse.ArgumentParser(description='SVR hyperparameter search')
 
-    parser.add_argument('--data_dir', type=str, default='data/', help='directory containing data propy_des.csv and train_Y.pkl')
+    parser.add_argument('--out_dir', type=str, default='data/', help='output directory')
     parser.add_argument('--n_cpus', type=int, default=1, help='number of cpus to use')
     parser.add_argument("--train_X", type=str, help="path to the input data")
     parser.add_argument("--train_Y", type=str, help="path to the training labels/target values")
@@ -140,7 +108,7 @@ if __name__=="__main__":
     
     args = parser.parse_args()
     
-    data_dir = args.data_dir
+    out_dir = args.out_dir
     N_CPUS   = args.n_cpus
     input_data = pd.read_csv(args.train_X)
     train_Y    = pd.read_csv(args.train_Y)
@@ -151,4 +119,6 @@ if __name__=="__main__":
     important_feature_cols = list(feature_weight_nonzero_df.feature_name)
     results = coarse_hyperparameter_sweep_par(input_data_important_features, train_Y, important_feature_cols, N_CPUS=N_CPUS, n_splits=10)    
     
+    with open(f'{out_dir}svr_gridsearch_results_{args.data_type}.pkl', 'wb') as f:
+        pkl.dump(results, f)
     pass
