@@ -112,7 +112,7 @@ if __name__=="__main__":
     N_CPUS   = args.n_cpus
     input_data = pd.read_csv(args.train_X)
     train_Y    = pd.read_csv(args.train_Y)
-    feature_weight_nonzero_df = pd.read_csv(args.important_features) # "notsorted_features_nonzero_log10_mic.csv"
+    feature_weight_nonzero_df = pd.read_csv(args.important_features, keep_default_na=False) # "notsorted_features_nonzero_log10_mic.csv"
 
     input_data_important_features = input_data[feature_weight_nonzero_df.feature_name]
 
