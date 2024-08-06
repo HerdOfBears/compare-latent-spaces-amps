@@ -11,7 +11,7 @@ import logging
 from propy import PyPro
 from propy.PyPro import GetProDes
 from sklearn.svm import SVR, LinearSVR
-from sklearn.linear_model import Lasso
+from sklearn.linear_model import Lasso, LassoLarsIC
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import KFold, ShuffleSplit
 from sklearn.metrics import mean_squared_error
@@ -110,7 +110,7 @@ def compute_propy_properties(sequences:list[str]):
     return pd.DataFrame(results)
 
 def calculate_mutual_info(i, data):
-    mutual_info_ = mutual_info_regression(data, data.iloc[:, i], n_neighbors=3, random_state=42)
+    mutual_info_ = mutual_info_regression(data, data[:, i], n_neighbors=3, random_state=42)
     return mutual_info_
 
 def perform_mRMR(data:pd.DataFrame, targets:pd.DataFrame, N_CPUS=1, method="mutual_info", max_features = 4, verbose=False):
@@ -163,7 +163,7 @@ def perform_mRMR(data:pd.DataFrame, targets:pd.DataFrame, N_CPUS=1, method="mutu
     # for i in range(data.shape[1]):
     t0 = time.time()
     if N_CPUS>1:
-        results = Parallel(n_jobs=N_CPUS)(delayed(calculate_mutual_info)(i, data) for i in range(max_features))
+        results = Parallel(n_jobs=N_CPUS)(delayed(calculate_mutual_info)(i, data.values) for i in range(max_features))
         for i, mutual_info_ in enumerate(results):
             pairwise_redundancies[i] = mutual_info_
     else:
@@ -221,6 +221,85 @@ def perform_mRMR(data:pd.DataFrame, targets:pd.DataFrame, N_CPUS=1, method="mutu
 
 
     return outputs, relevances, pairwise_redundancies
+
+def perform_lasso(input_data_post_mrmr:pd.DataFrame, targets:pd.DataFrame, N_CPUS=1, method="cv", verbose=False):
+    """
+    Performs Lasso regression on the data.
+    Arguments:
+    ----------
+    input_data_post_mrmr: pd.DataFrame, input data after performing minimum redundancy maximum relevance feature selection
+    targets: pd.DataFrame, target values
+    N_CPUS: int, number of cpus available for parallel computation, 
+            -1: use all cpus
+            None: do not parallelize
+    method: str, choices=["cv","aic"]
+            method for selecting the best alpha value for Lasso regression
+            cv: cross-validation
+            aic: Akaike Information Criterion using LassoLarsIC
+    
+    Returns:
+    --------
+    """
+    if N_CPUS is not None:
+        raise NotImplementedError("parallelization not implemented yet")
+
+    vs_ssvr = VS_SSVR()
+
+    new_alpha_values_exp = np.linspace(-4,3,200) # 200 alpha values to test between 1e-4 and 1e3
+    new_alpha_values = 10**new_alpha_values_exp
+
+    vs_ssvr.alpha_values = new_alpha_values
+
+    t0 = time.time()
+    if method=="cv":
+        results = vs_ssvr.variable_selection_sparse_svr(
+            input_data_post_mrmr, targets, n_splits=10, max_iter=1000
+        )
+        if verbose:
+            print("time to perform lasso cv for each alpha values:",time.time()-t0)
+    elif method=="aic":
+        # use LassoLarsIC
+        scaler = StandardScaler()
+        input_data_post_mrmr = scaler.fit(input_data_post_mrmr)
+        _scaled_data = scaler.transform(input_data_post_mrmr)
+        _lasso_lars_ic = LassoLarsIC(criterion="aic")
+        _lasso_lars_ic.fit(_scaled_data, targets)
+        results = _lasso_lars_ic 
+        return results
+    else:
+        raise ValueError("method arg must be one of ['cv','aic']")
+
+
+    n_splits = len(results)-1 # -1 because of 'indices_above_dummy_threshold' key
+
+    important_features = results['split_0']['coefficients']
+    for i in range(1,n_splits):
+        important_features += results[f'split_{i}']['coefficients']
+    important_features /= n_splits
+
+    # set those <= dummy threshold to zero
+    indices_to_zero = set(list(range(len(important_features)))) - set(results['indices_above_dummy_threshold'])
+    for i in indices_to_zero:
+        important_features[i]=0.0
+
+    if ( important_features[-10:]==np.zeros(10) ).all():
+        print("all dummy variable coefficients zeroed out")
+
+    feature_weight_df = pd.DataFrame({
+        "feature_name":list(input_data_post_mrmr.columns),
+        "feature_idx" :list(range(len(input_data_post_mrmr.columns))),
+        "weight":important_features,
+        "abs_weight":abs(important_features)
+    })
+    feature_weight_nonzero_df = feature_weight_df[feature_weight_df['abs_weight']>0]
+    feature_weight_nonzero_df.head()
+
+    sorted_features_df = feature_weight_nonzero_df.sort_values("abs_weight", ascending=False, ignore_index=True)
+    if verbose:
+        print("top 15 features:")
+        print(sorted_features_df.head(15))
+
+    return results, sorted_features_df
 
 class VS_SSVR:
     def __init__(self, 
@@ -502,10 +581,114 @@ class VS_SSVR:
 
 
 class NonlinearSVRonPhysicoChemicalProps():
-    def __init__(self, important_feature_indices:list[int]):
-        self.important_feature_indices = important_feature_indices
-        pass
+    def __init__(self, target_name:str, important_feature_indices:list[int], kernel:str="rbf", C:float=1.0, epsilon:float=0.1):
+        self.target_name = target_name # what is this model predicting, mic, log_mic, etc
+        self._selected_features = important_feature_indices
+        self.svr = SVR(kernel=kernel, C=C, epsilon=epsilon)
+        self.scaler = StandardScaler()
 
+    def set_model_params(self, model_params:dict):
+        """
+        Sets the parameters for the SVR model, scaler, and target name. 
+        For re-loading a model.
+
+        Arguments:
+        ----------
+        model_params: dict, dictionary containing 
+            "svr_params": dict, parameters for the SVR model
+            "scaler_params": dict, parameters for the StandardScaler
+            "target_name": str, name of the target variable
+        """
+        svr_params    = model_params["svr_params"]
+        scaler_params = model_params["scaler_params"]
+        target_name   = model_params["target_name"]
+        
+        self.svr.set_params(**svr_params)
+        self.scaler.set_params(**scaler_params)
+        self.target_name = target_name
+    
+    def get_model_params(self):
+        """
+        Returns the dict of parameters for the SVR model, scaler, and target name. 
+
+        Returns:
+        --------
+        outputs: dict, dictionary containing
+            "svr_params": dict, parameters for the SVR model
+            "scaler_params": dict, parameters for the StandardScaler
+            "target_name": str, name of the target variable
+        """
+        outputs = {}
+        outputs[    "svr_params"] = self.svr.get_params()
+        outputs[ "scaler_params"] = self.scaler.get_params()
+        outputs[   "target_name"] = self.target_name
+        return outputs
+
+    def get_physico_chemical_props(self,sequences:list[str]|str)->pd.DataFrame:
+        """
+        uses compute_propy_properties to get physicochemical properties of sequences
+        then filters out the selected features
+        """
+        if isinstance(sequences, str):
+            sequences = [sequences]
+        
+        physicochemical_props_ = compute_propy_properties(sequences)
+        # check if selected features contains indices or column names
+        if all([isinstance(f_,int) for f_ in self._selected_features]):
+            physicochemical_props_ = physicochemical_props_.iloc[:,self._selected_features]
+        else:
+            physicochemical_props_ = physicochemical_props_[self._selected_features]
+
+        return physicochemical_props_
+
+    def fit(self, X, y, input_type="sequences"):
+        """
+        Arguments:
+        ----------
+            X: array, input values
+            y: array, target values
+            input_type: str, choices=["sequences","physicochemical_properties"]
+        """
+        if input_type not in ["sequences", "physicochemical_properties"]:
+            raise ValueError("input_type must be one of ['sequences','physicochemical_properties']")
+        
+        if input_type=="sequences":
+            physicochemical_props_ = self.get_physico_chemical_props(X)
+        else:
+            physicochemical_props_ = X
+        
+        # standardize data
+        self.scaler.fit(physicochemical_props_)
+        physicochemical_props_ = self.scaler.transform(physicochemical_props_)
+
+        # fit svr model
+        self.svr.fit(physicochemical_props_, y)
+    
+    def predict(self, sequences:list[str]|str):
+        """
+        wrapper predict method to automatically get physicochemical properties given (a) new sequence(s)
+        then predict from that
+
+        Arguments:
+        ----------
+        sequences: str or list[str], sequences to predict off of
+
+        Returns:
+        --------
+        predicted values, 
+        """
+        if isinstance(sequences, str):
+            sequences = [sequences]
+        
+        # compute sequence features/physicochemical properties
+        physicochemical_props_ = self.get_physico_chemical_props(sequences)
+
+        # put through scaler
+        physicochemical_props_ = self.scaler.transform(physicochemical_props_)
+
+        # predict
+        y_predicted = self.svr.predict(physicochemical_props_)
+        return y_predicted
 
 class SVRonPhysicoChemicalProps():
     def __init__(self, svr_params, important_features, svr_C=1.0, svr_epsilon=0.1):
