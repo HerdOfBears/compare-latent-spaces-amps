@@ -191,10 +191,13 @@ class OptimizeInReducedLatentSpace():
 
             _inv_proj = self.dimensionality_reducer.inverse_transform(
                 train_X[[_idx]]
-            ).to(torch.float32)
+            )
+            
 
             if isinstance(_inv_proj, np.ndarray):
                 _inv_proj = torch.from_numpy(_inv_proj)
+            
+            _inv_proj = _inv_proj.to(torch.float32)
             
             if _inv_proj.dim() == 1:
                 _inv_proj.unsqueeze_(0)
@@ -260,7 +263,7 @@ class OptimizeInReducedLatentSpace():
                 prediction_score = prediction_score.item()
             elif isinstance(prediction_score, np.ndarray):
                 prediction_score = prediction_score[0]
-                
+
             print(f"iteration {i+1} completed. Prediction score: {prediction_score}")
             self.optimization_results["iterations"].append(i+1+last_iteration)
             self.optimization_results["candidates"].append(candidate_sequence)
