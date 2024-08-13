@@ -20,7 +20,7 @@ from sklearn.model_selection import train_test_split, KFold, ShuffleSplit
 
 from sklearn.feature_selection import mutual_info_regression
 
-from transvae.mic_svr import compute_propy_properties, VS_SSVR, perform_mRMR
+from transvae.mic_svr import compute_propy_properties, VS_SSVR, perform_mRMR, perform_lasso
 
 def load_data(data_dir, data_type="mic"):
 
@@ -55,7 +55,7 @@ def load_data(data_dir, data_type="mic"):
 
     return input_data, train_Y
 
-def main(data_dir, N_CPUS=1, data_type="mic"):
+def main(data_dir, N_CPUS=1, data_type="mic", do_mrmr=True, do_model_feature_selection=False):
 
     # gets training and testing data, as used by Witten & Witten (2019). 
 
@@ -64,9 +64,12 @@ def main(data_dir, N_CPUS=1, data_type="mic"):
     else:
         data_dir = "oracles/"
 
+    # load data
     input_data, train_Y = load_data(data_dir, data_type=data_type)
 
-    
+    ########################################
+    # perform minimum redundancy maximum relevance feature selection/filtering
+    ########################################
     t0 = time.time()
     results, relevancies, pairwise_redundancies = perform_mRMR(
         input_data, train_Y, N_CPUS=N_CPUS, max_features=input_data.shape[1], verbose=True
@@ -84,12 +87,32 @@ def main(data_dir, N_CPUS=1, data_type="mic"):
         pkl.dump(mrmr_results, f)
     print("done mRMR")
 
+    # get the best subset of features
+    best_subset = None
+    for _feature_subset in list(mrmr_results['results'].keys()):
+        _inc_mrmr_score = mrmr_results['results'][ _feature_subset ]["incremental_mRMR_score"]
+        if _inc_mrmr_score>0:
+            best_subset = _feature_subset
+
+    propy_features_post_mrmr = []
+    for i in best_subset:
+        propy_features_post_mrmr.append(list(input_data.columns)[i])
+
+    ########################################
+    # perform model-based feature selection using either LASSO or sparse SVC
+    ########################################
+    if do_model_feature_selection:
+        input_data_post_mrmr = input_data[propy_features_post_mrmr]
+        model_feature_selection_results, sorted_features_df = perform_lasso(
+            input_data_post_mrmr, train_Y, N_CPUS=None, method="cv", verbose=False
+        )
+
 
 if __name__ == "__main__":
     # take data directory and number of cpus as command-line arguments
-    parser = argparse.ArgumentParser(description="Run mRMR feature selection")
+    parser = argparse.ArgumentParser(description="Run feature selection pipeline")
     parser.add_argument("--data_dir", type=str, help="path to the data directory")
-    parser.add_argument("--n_cpus", type=int, help="number of cpus to use")
+    parser.add_argument("--n_cpus", type=int, help="number of cpus to use (only applicable to mRMR atm)")
     parser.add_argument("--data_type", type=str, help="data to use (mic or hemolytik)")
     
     args = parser.parse_args()
