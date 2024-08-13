@@ -24,23 +24,10 @@ def make_svr(final_mic_svr_path, feature_selection_results_path,use_cysteinic_da
     on the physicochemical properties of peptide sequences.
     Data is taken from Witten & Witten (2019).
     """
-
+    raise DeprecationWarning("This function is deprecated. Use the NonlinearSVRonPhysicoChemicalProps class instead.")
     # gets training and testing data, as used by Witten & Witten (2019). 
     cwd = os.getcwd()
 
-    with open(final_mic_svr_path, "rb") as f:
-        nonlinear_svr_setup = pkl.load(f)
-    with open(feature_selection_results_path,'rb') as f:
-        feature_selection_results = pkl.load(f)
-
-    svr = SVRonPhysicoChemicalProps(nonlinear_svr_setup['svr']["svr_params"],
-                                    feature_selection_results["indices_above_dummy_threshold"])
-    
-    train_X = nonlinear_svr_setup['train_X']
-    svr.important_feature_cols = list(train_X.columns)
-    train_Y = nonlinear_svr_setup['train_Y']
-    print(f"Training SVR model on {len(train_X)} samples, assuming physicochemical props are input features")
-    svr.fit(train_X, train_Y, input_type="physicochemical_properties", pcprops="propy")
 
     if return_train_data:
         return svr, train_X, train_Y
@@ -637,7 +624,10 @@ class NonlinearSVRonPhysicoChemicalProps():
         if all([isinstance(f_,int) for f_ in self._selected_features]):
             physicochemical_props_ = physicochemical_props_.iloc[:,self._selected_features]
         else:
-            physicochemical_props_ = physicochemical_props_[self._selected_features]
+            try:
+                physicochemical_props_ = physicochemical_props_[self._selected_features]
+            except KeyError:
+                return None
 
         return physicochemical_props_
 
@@ -682,7 +672,9 @@ class NonlinearSVRonPhysicoChemicalProps():
         
         # compute sequence features/physicochemical properties
         physicochemical_props_ = self.get_physico_chemical_props(sequences)
-
+        if physicochemical_props_ is None:
+            return None
+        
         # put through scaler
         physicochemical_props_ = self.scaler.transform(physicochemical_props_)
 
