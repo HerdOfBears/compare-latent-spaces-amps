@@ -1,24 +1,16 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 import torch
-import os
 import pickle as pkl
-import peptides
 import logging
 import time
 import argparse
 
 from joblib import Parallel, delayed
-from sklearn.svm import SVR
 from sklearn.decomposition import PCA
 
-from transvae import trans_models
 from transvae.transformer_models import TransVAE
-from transvae.rnn_models import RNN
 from transvae.tvae_util import *
-from transvae import analysis
-from scripts.parsers import model_init, train_parser
 
 from transvae.optimization import OptimizeInReducedLatentSpace
 from transvae.mic_svr import NonlinearSVRonPhysicoChemicalProps
