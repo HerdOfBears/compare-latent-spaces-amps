@@ -242,6 +242,12 @@ class OptimizeInReducedLatentSpace():
             prediction_score = self.property_oracle.predict(
                 [candidate_sequence]
             )
+            if isinstance(prediction_score, torch.Tensor):
+                prediction_score = prediction_score.item()
+            elif isinstance(prediction_score, np.ndarray):
+                prediction_score = prediction_score[0]
+            elif isinstance(prediction_score, list):
+                prediction_score = prediction_score[0]
 
             if self.minimize_or_maximize_score=="minimize":
                 if prediction_score is None:
@@ -256,13 +262,10 @@ class OptimizeInReducedLatentSpace():
             train_X = torch.cat([train_X, candidate], dim=0)
             train_Y = torch.cat([train_Y, torch.tensor(prediction_score).float().reshape(1,1)], dim=0)
             if objective_value > best_score:
-                best_score = objective_value[0]
+                best_score = objective_value
                 best_seq   = candidate_sequence
             
-            if isinstance(prediction_score, torch.Tensor):
-                prediction_score = prediction_score.item()
-            elif isinstance(prediction_score, np.ndarray):
-                prediction_score = prediction_score[0]
+
 
             print(f"iteration {i+1} completed. Prediction score: {prediction_score}")
             self.optimization_results["iterations"].append(i+1+last_iteration)
