@@ -212,7 +212,7 @@ def im_kernel_sum(z1, z2, z_var, exclude_diag=True):
 
     return kernel_sum
 
-def deep_isometry_loss(mu, sequences, pairwise_distances, beta=1, reduction='mean'):
+def deep_isometry_loss(mu, sequences, pairwise_distances, beta=None, reduction='mean'):
     """
     Deep Isometry Loss. 
     Computes the difference in distance b/w latent space points 
@@ -268,7 +268,10 @@ def deep_isometry_loss(mu, sequences, pairwise_distances, beta=1, reduction='mea
     else:
         loss = _diff
 
-    return beta*loss
+    if beta is None:
+        return loss
+    else:
+        return beta*loss
 
 def triplet_loss():
     pass
