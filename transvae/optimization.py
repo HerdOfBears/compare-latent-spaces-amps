@@ -251,7 +251,7 @@ class OptimizeInReducedLatentSpace():
 
             if self.minimize_or_maximize_score=="minimize":
                 if prediction_score is None:
-                    prediction_score = -1e3
+                    prediction_score = 1e3
                 objective_value = -prediction_score
             else:
                 if prediction_score is None:
