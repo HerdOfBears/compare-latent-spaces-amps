@@ -85,8 +85,8 @@ class VAEShell():
             os.system("cp {} ~/scratch".format(save_path))
         else:
             torch.save(state, save_path)
-        
-        
+
+        # also save beta annealer state
         
     def load(self, checkpoint_path, rank=0, workaround=None):
         """
@@ -229,6 +229,9 @@ class VAEShell():
         ### Initialize Annealer
         kl_annealer = KLAnnealer(self.params['BETA_INIT'], self.params['BETA'],
                                  epochs, self.params['ANNEAL_START'])
+        
+        contrastive_annealer = KLAnnealer(0.01, 1.0,
+                                          epochs, 20)
         ####################################################################################################
         ### Epoch loop start
         for epoch in range(epochs):
@@ -250,6 +253,8 @@ class VAEShell():
             self.model.train()
             losses = []
             beta = kl_annealer(epoch)
+            beta_contrastive = contrastive_annealer(epoch)
+
             for j, data in enumerate(train_iter):
                 avg_losses          = []
                 avg_bce_losses      = []
@@ -345,8 +350,8 @@ class VAEShell():
                         # latent points
                         mu_subset = mu[_idx]
                         
-                        # isometry_loss = deep_isometry_loss(mu_subset, _sequence_subset, pairwise_distances, beta=beta)
-                        isometry_loss = deep_isometry_loss(mu_subset, _sequence_subset, pairwise_distances)
+                        isometry_loss = deep_isometry_loss(mu_subset, _sequence_subset, pairwise_distances, beta=beta_contrastive)
+                        # isometry_loss = deep_isometry_loss(mu_subset, _sequence_subset, pairwise_distances)
                         # increase the total loss by the rmsd loss
                         loss = loss + isometry_loss_weighting*isometry_loss
                     else:
@@ -501,8 +506,8 @@ class VAEShell():
                         # latent points
                         mu_subset = mu[_idx]
                         
-                        # isometry_loss = deep_isometry_loss(mu_subset, _sequence_subset, pairwise_distances,beta=beta)
-                        isometry_loss = deep_isometry_loss(mu_subset, _sequence_subset, pairwise_distances)
+                        isometry_loss = deep_isometry_loss(mu_subset, _sequence_subset, pairwise_distances,beta=beta_contrastive)
+                        # isometry_loss = deep_isometry_loss(mu_subset, _sequence_subset, pairwise_distances)
                         # increase the total loss by the rmsd loss
                         loss = loss + isometry_loss
                     else:
