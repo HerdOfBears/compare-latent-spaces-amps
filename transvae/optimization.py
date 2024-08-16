@@ -260,12 +260,17 @@ class OptimizeInReducedLatentSpace():
             prediction_scores = self.property_oracle.predict(
                 candidate_sequences
             )
-
+            
             candidate          = candidates[         acq_values.argmax()]
             candidate_sequence = candidate_sequences[acq_values.argmax()]
-            prediction_score   = prediction_scores[  acq_values.argmax()]
-            if all([i is None for i in prediction_scores]):
+
+            if prediction_scores is None: 
                 prediction_score = None
+            else:
+                prediction_score   = prediction_scores[  acq_values.argmax()]
+
+            # if all([i is None for i in prediction_scores]):
+            #     prediction_score = None
 
             if   isinstance(prediction_score, torch.Tensor):
                 prediction_score = prediction_scores.item()
