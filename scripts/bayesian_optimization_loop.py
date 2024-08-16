@@ -77,7 +77,7 @@ def run_optimization(i, params, model, nonlinear_svr, pca, char_dict, minimize_o
     )
 
     # Run optimization loop
-    _optimizer.optimize(train_X, train_Y, n_iters=params['n_bo_iters'], verbose=False)
+    _optimizer.optimize(train_X, train_Y, n_iters=params['n_bo_iters'], n_restarts=1,verbose=False)
 
     # Get results
     return f"run_{i}", _optimizer.optimization_results
@@ -95,17 +95,22 @@ def main(data_X, data_Y, params):
     #########################################
     # load a trained generative model
     logging.info("loading generative model...")
-    model_src = chkpt_fpath
-    model_obj=torch.load(model_src, map_location=torch.device("cpu"))
-    model = TransVAE(load_fn=model_src, workaround="cpu")
-    
-    model.params['HARDWARE']= 'cpu'
-    model.params["BATCH_SIZE"] = N_INITALIZATION_POINTS
-    print(data_X[:5])
-    with torch.no_grad():
-        z, mu, logvar = model.calc_mems(data_X.to_numpy(), log=False,save=False)
+    if not params['use_esm']:
+        model_src = params['chkpt_fpath']
+        model_obj=torch.load(model_src, map_location=torch.device("cpu"))
+        model = TransVAE(load_fn=model_src, workaround="cpu")
+        
+        model.params['HARDWARE']= 'cpu'
+        model.params["BATCH_SIZE"] = N_INITALIZATION_POINTS
+        print(data_X[:5])
+        with torch.no_grad():
+            z, mu, logvar = model.calc_mems(data_X.to_numpy(), log=False,save=False)
+    else:
+        logging.info("loading ESM model...")
+        model = EsmWrapper(params)
+        with torch.no_grad():
+            mu = model.encode(data_X.to_numpy())
 
-    
     #########################################
     # build a dimensionality reduction method
     logging.info("building PCA w/ {N_PCA_COMPONENTS} components...")
@@ -148,23 +153,6 @@ def main(data_X, data_Y, params):
 
     minimize_or_maximize = "minimize" if params["prediction_target"]=="log10_mic" else "maximize"
     results = parallel_optimization(params, model, nonlinear_svr, pca, char_dict, minimize_or_maximize, train_X, train_Y, params['N_CPUS'])
-    # results = {}
-    # for i in range(params['n_bo_runs']):
-    #     logging.info(f"Run {i+1}/{params['n_bo_runs']}")
-
-    #     # initialize optimizer
-    #     _optimizer = OptimizeInReducedLatentSpace(
-    #         model, nonlinear_svr, pca, char_dict, minimize_or_maximize_score=minimize_or_maxmize
-    #     )
-
-    #     # run optimization loop
-    #     _optimizer.optimize(train_X, train_Y, n_iters=params['n_bo_iters'], verbose=False)
-
-    #     # get results
-    #     _optimizer_results = _optimizer.optimization_results
-
-    #     # save results
-    #     results[f"run_{i}"] = _optimizer_results
 
     return results
 
@@ -177,7 +165,8 @@ if __name__ == '__main__':
     parser.add_argument('--seq2prop_fpath',  type=str, required=True)
     parser.add_argument('--char_dict_fpath', type=str, required=True)
     parser.add_argument('--chkpt_fpath',     type=str, required=True)
-
+    
+    parser.add_argument("--use_esm", type=str, default='no', choices=['yes', 'no'])
     parser.add_argument('--use_mic_svr', type=str, default='yes', choices=['yes', 'no'])
     parser.add_argument('--n_bo_runs',               type=int, default=  5)
     parser.add_argument('--n_bo_iters',              type=int, default=100)
@@ -194,6 +183,31 @@ if __name__ == '__main__':
     else:
         USE_MIC_SVR = False
     USE_Amplify = not USE_MIC_SVR
+
+    USE_ESM = args.use_esm
+    if USE_ESM == 'yes':
+        USE_ESM = True
+
+        # import relevant module
+        from transvae.helpers_esm import EsmWrapper
+
+        # Define model paths
+        model_path = "esm2/"
+        model_name_or_path     = model_path
+        tokenizer_name_or_path = model_path
+
+        # logging.info("Loading model...")
+        # model = EsmForProteinFolding.from_pretrained(
+        #                     model_path,
+        #                     local_files_only=True
+        # )
+        # tokenizer = AutoTokenizer.from_pretrained(
+        #                     model_path,
+        #                     local_files_only=True
+        # )
+
+    else:
+        USE_ESM = False
 
     N_BO_RUNS              = args.n_bo_runs
     N_BO_ITERS             = args.n_bo_iters
@@ -232,8 +246,18 @@ if __name__ == '__main__':
     params['n_initialization_points'] = N_INITALIZATION_POINTS
     params['n_pca_components'] = N_PCA_COMPONENTS
     params['prediction_target'] = args.prediction_target
+    
+    params["chkpt_fpath"] = chkpt_fpath
+    params['char_dict'] = char_dict
+    
+    params["use_esm"] = USE_ESM
+    if USE_ESM:
+        params["esm_path"] = model_path
+    
     params['N_CPUS'] = N_CPUS
 
+    t0 = time.time()
     results = main(sampled_seqs, sampled_props, params)
-    with open(f'{data_dir}bayesian_optimization_results.pkl', 'wb') as f:
+    print(f"Elapsed time: {time.time()-t0:.4f} seconds. For {N_BO_RUNS} runs, each with {N_BO_ITERS} oracle calls/BO loop iterations.")
+    with open(f'{data_dir}bayesian_optimization_results_TEST.pkl', 'wb') as f:
         pkl.dump(results, f)
