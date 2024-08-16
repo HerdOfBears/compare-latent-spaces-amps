@@ -51,6 +51,6 @@ class EsmWrapper:
             _out = _out.split(" ")
             # _out = [c for c in _out if c not in ["<cls>", "<eos>", "<pad>"]]
             _out = [c for c in _out if c in list(self.common_amino_acids)]
-            sequences.append(_out)
+            sequences.append("".join(_out))
         
         return sequences
