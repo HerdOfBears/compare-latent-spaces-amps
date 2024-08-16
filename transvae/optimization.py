@@ -56,7 +56,8 @@ class OptimizeInReducedLatentSpace():
                  property_oracle, 
                  dimensionality_reduction,
                  char_dict,
-                 minimize_or_maximize_score="maximize"
+                 minimize_or_maximize_score="maximize",
+                 params={}
         ):
         """
         Class to perform Bayesian Optimization in the reduced latent space of a generative model.
@@ -80,6 +81,8 @@ class OptimizeInReducedLatentSpace():
             If "maximize", the optimizer will attempt to maximize the score.
             If "minimize", the optimizer will attempt to minimize the score.
             The default is "maximize".
+        params : dict, optional
+            Additional options, mainly to check if using ESM or other generative models.
         """
         
         # Generative Model and Property Oracle setup
@@ -87,6 +90,7 @@ class OptimizeInReducedLatentSpace():
         self.char_dict = char_dict
         self.minimize_or_maximize_score = minimize_or_maximize_score
         self.property_oracle = property_oracle
+        self.params = params
 
         print("Testing property oracle...")
         test_sequence = "MKKLLLLLLLLLLRRLAAASLKLSN"
@@ -203,8 +207,12 @@ class OptimizeInReducedLatentSpace():
                 _inv_proj.unsqueeze_(0)
 
             with torch.no_grad():
-                _decode_inv_proj = self.generative_model.greedy_decode(_inv_proj);
-            best_seq = self.decode_seq(_decode_inv_proj.flatten().numpy())
+                if self.params.get("use_esm", False):
+                    _decode_inv_proj = self.generative_model.greedy_decode(_inv_proj)
+                    best_seq = _decode_inv_proj # ESM has its own decoding method
+                else:
+                    _decode_inv_proj = self.generative_model.greedy_decode(_inv_proj);
+                    best_seq = self.decode_seq(_decode_inv_proj.flatten().numpy())
 
         for i in range(n_iters):
 
@@ -216,46 +224,63 @@ class OptimizeInReducedLatentSpace():
 
             # grab candidate(s)
             # q x d if return_best_only is True (default) – num_restarts x q x d if return_best_only is False
-            candidate, acq_value = optimize_acqf(
+            candidates, acq_values = optimize_acqf(
                 self.acq_func, bounds=self.bounds, q=1, num_restarts=n_restarts, raw_samples=20,
-                return_best_only=True
+                return_best_only=False
             )
-
+            
             # inverse projection
-            candidate_invproj = self.dimensionality_reducer.inverse_transform(candidate)
+            candidates_invproj = self.dimensionality_reducer.inverse_transform(candidates)
             if verbose:
-                print(f"candidate in reduced space: {candidate}")
-                print(f"candidate in original space: {candidate_invproj}")
+                print(f"candidate in reduced space: {candidates}")
+                print(f"candidate in original space: {candidates_invproj}")
 
-            if isinstance(candidate_invproj, np.ndarray):
-                candidate_invproj = torch.from_numpy(candidate_invproj)
+            if isinstance(candidates_invproj, np.ndarray):
+                candidates_invproj = torch.from_numpy(candidates_invproj)
 
+            candidates_invproj = candidates_invproj.reshape(-1, candidates_invproj.shape[-1]) # (n_restarts, 1, d_latent) -> (n_restarts, d_latent)
             # decode the candidate sequence from the latent space to the original sequence space
             with torch.no_grad():
-                candidate_decoded = self.generative_model.greedy_decode(candidate_invproj);
-
-            candidate_sequence = self.decode_seq(candidate_decoded.flatten().numpy())
+                if self.params.get("use_esm", False):
+                    _decode_inv_proj = self.generative_model.greedy_decode(candidates_invproj)
+                    candidate_decoded = _decode_inv_proj # ESM has its own decoding method
+                else:
+                    candidate_decoded = self.generative_model.greedy_decode(candidates_invproj);
+            
+            if self.params.get("use_esm", False):
+                candidate_sequences = candidate_decoded
+            else:
+                candidate_sequences = []
+                for i in range(candidate_decoded.shape[0]):
+                    candidate_sequences.append(self.decode_seq(candidate_decoded[i].flatten().numpy()))
 
             if verbose:
-                print(f"candiate sequence: {candidate_sequence}")
+                print(f"candiate sequences: {candidate_sequences}")
             
-            prediction_score = self.property_oracle.predict(
-                [candidate_sequence]
+            prediction_scores = self.property_oracle.predict(
+                candidate_sequences
             )
-            if isinstance(prediction_score, torch.Tensor):
-                prediction_score = prediction_score.item()
+
+            candidate          = candidates[         acq_values.argmax()]
+            candidate_sequence = candidate_sequences[acq_values.argmax()]
+
+            if all([i is None for i in prediction_scores]):
+                prediction_score = None
+
+            if   isinstance(prediction_score, torch.Tensor):
+                prediction_score = prediction_scores.item()
             elif isinstance(prediction_score, np.ndarray):
-                prediction_score = prediction_score[0]
+                prediction_score = prediction_scores[0]
             elif isinstance(prediction_score, list):
-                prediction_score = prediction_score[0]
+                prediction_score = prediction_scores[0]
 
             if self.minimize_or_maximize_score=="minimize":
                 if prediction_score is None:
-                    prediction_score = 1e3
+                    prediction_score = 3.5 # for MIC and HC50, the log values range between, -1.5 to 3.5. so 3.5 is a reasonable upper bound
                 objective_value = -prediction_score
             else:
                 if prediction_score is None:
-                    prediction_score = -1e3
+                    prediction_score = -3.5
                 objective_value =  prediction_score
 
             # update the training data for the GP model
