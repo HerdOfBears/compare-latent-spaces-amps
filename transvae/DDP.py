@@ -49,8 +49,14 @@ def DDP_init(self):
     """ this block initializes a process group and initiate communications
         between all processes running on all nodes """
     #print('From Rank: {}, ==> Initializing Process Group...'.format(rank))
-    os.system("echo From Rank: {}, ==> Initializing Process Group...".format(rank))
+    os.system("os.system:echo From Rank: {}, ==> Initializing Process Group...".format(rank))
     print("echo From Rank: {}, ==> Initializing Process Group...".format(rank))
+    print(f"echo rank={rank},local_rank={local_rank},ngpus_per_node={ngpus_per_node},current_device={current_device}")
+    print(f"backend={self.params['DIST_BACKEND']},init_method={self.params['INIT_METHOD']},world_size={self.params['WORLD_SIZE']}")
+    print("SLURM_LOCALID:", os.environ.get("SLURM_LOCALID"))
+    print("SLURM_NODEID:", os.environ.get("SLURM_NODEID"))
+    print("MASTER_ADDR:", os.environ.get("MASTER_ADDR"))
+    print("MASTER_PORT:", os.environ.get("MASTER_PORT"))
     #init the process group
     dist.init_process_group(backend=self.params['DIST_BACKEND'], init_method=self.params['INIT_METHOD'],
                             world_size=self.params['WORLD_SIZE'], rank=rank)
