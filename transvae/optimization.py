@@ -263,7 +263,7 @@ class OptimizeInReducedLatentSpace():
 
             candidate          = candidates[         acq_values.argmax()]
             candidate_sequence = candidate_sequences[acq_values.argmax()]
-
+            prediction_score   = prediction_scores[  acq_values.argmax()]
             if all([i is None for i in prediction_scores]):
                 prediction_score = None
 
