@@ -226,6 +226,9 @@ if __name__ == '__main__':
     #########################################
     # set up logging config
     logfilename = f'{data_dir}bayesian_optimization_loop.log'
+    if USE_ESM:
+        logfilename = f'{data_dir}bayesian_optimization_loop_esm.log'
+
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s - %(levelname)s - %(message)s',
                         filename=logfilename)
@@ -259,5 +262,9 @@ if __name__ == '__main__':
     t0 = time.time()
     results = main(sampled_seqs, sampled_props, params)
     print(f"Elapsed time: {time.time()-t0:.4f} seconds. For {N_BO_RUNS} runs, each with {N_BO_ITERS} oracle calls/BO loop iterations.")
-    with open(f'{data_dir}bayesian_optimization_results_TEST.pkl', 'wb') as f:
+
+    output_fpath = f'{data_dir}bayesian_optimization_results.pkl'
+    if USE_ESM:
+        output_fpath = f'{data_dir}bayesian_optimization_results_esm.pkl'
+    with open(output_fpath, 'wb') as f:
         pkl.dump(results, f)
