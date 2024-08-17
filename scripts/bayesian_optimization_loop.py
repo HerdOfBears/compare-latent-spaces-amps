@@ -268,9 +268,9 @@ if __name__ == '__main__':
 
     #########################################
     # save results
-    output_fpath = f'{data_dir}bayesian_optimization_results_{chkpt_fpath.split("/")[1]}_{params['prediction_target']}.pkl'
+    output_fpath = f"{data_dir}bayesian_optimization_results_{chkpt_fpath.split('/')[1]}_{params['prediction_target']}.pkl"
     if USE_ESM:
-        output_fpath = f'{data_dir}bayesian_optimization_results_esm_TEST.pkl'
+        output_fpath = output_fpath.replace(".pkl", "_esm.pkl")
     results['params'] = params
     with open(output_fpath, 'wb') as f:
         pkl.dump(results, f)
