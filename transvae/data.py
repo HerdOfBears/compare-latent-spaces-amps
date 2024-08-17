@@ -7,7 +7,7 @@ from torch.autograd import Variable
 
 from transvae.tvae_util import *
 
-def vae_data_gen(data, max_len=126, name=None, props=None, char_dict=None):
+def vae_data_gen(data, max_len=126, name=None, props=None, char_dict=None, d_pp_out=1):
     """
     Encodes input smiles to tensors with token ids
 
@@ -15,15 +15,16 @@ def vae_data_gen(data, max_len=126, name=None, props=None, char_dict=None):
         mols (np.array, req): Array containing input molecular structures
         props (np.array, req): Array containing scalar chemical property values
         char_dict (dict, req): Dictionary mapping tokens to integer id
+        d_pp_out (int, opt): Number of property outputs. Default is 1
     Returns:
         encoded_data (torch.tensor): Tensor containing encodings for each
                                      SMILES string
     """
     seq_list = data[:,0] #unpackage the smiles: mols is a list of lists of smiles (lists of characters) 
     if props is None:
-        props = np.zeros(seq_list.shape)
-        props = props.reshape(-1,1)
-        n_prop_outputs = 1
+        # props = np.zeros(seq_list.shape)
+        props = np.zeros( (len(seq_list), d_pp_out) )
+        n_prop_outputs = d_pp_out
     else:
         # props = props.astype(int)
         n_props = len(props)
