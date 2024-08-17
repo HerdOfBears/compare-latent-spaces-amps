@@ -259,12 +259,18 @@ if __name__ == '__main__':
     
     params['N_CPUS'] = N_CPUS
 
+    #########################################
+    # run main
+    #########################################
     t0 = time.time()
     results = main(sampled_seqs, sampled_props, params)
     print(f"Elapsed time: {time.time()-t0:.4f} seconds. For {N_BO_RUNS} runs, each with {N_BO_ITERS} oracle calls/BO loop iterations.")
 
-    output_fpath = f'{data_dir}bayesian_optimization_results.pkl'
+    #########################################
+    # save results
+    output_fpath = f'{data_dir}bayesian_optimization_results_{chkpt_fpath}_{params['prediction_target']}.pkl'
     if USE_ESM:
-        output_fpath = f'{data_dir}bayesian_optimization_results_esm.pkl'
+        output_fpath = f'{data_dir}bayesian_optimization_results_esm_TEST.pkl'
+    results['params'] = params
     with open(output_fpath, 'wb') as f:
         pkl.dump(results, f)
