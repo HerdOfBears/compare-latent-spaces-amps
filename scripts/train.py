@@ -75,6 +75,8 @@ def train(args):
     else:
         train_props = None
         test_props  = None
+        params['d_pp_out'] = 1 # default value for d_pp_out if not training a property predictor
+        args.d_pp_out = 1
 
     if "yes" in args.use_isometry_loss:
         use_isometry_loss = True
