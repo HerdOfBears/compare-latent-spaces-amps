@@ -115,10 +115,10 @@ class VAEShell():
                 self.current_state[k] = None
 
         self.vocab_size = len(self.current_state['params']['CHAR_DICT'].keys())
-        self.pad_idx = self.current_state['params']['CHAR_DICT']['_']
-        state_dict = self.current_state['model_state_dict']
-        self.name = self.current_state['name']
-        self.n_epochs = self.current_state['epoch']
+        self.pad_idx   = self.current_state['params']['CHAR_DICT']['_']
+        state_dict     = self.current_state['model_state_dict']
+        self.name      = self.current_state['name']
+        self.n_epochs  = self.current_state['epoch']
         self.best_loss = self.current_state['best_loss']
         #This is the last key in the outer dict. Need to match the values from the ckpt.
         for k, v in self.current_state['params'].items():
@@ -586,7 +586,7 @@ class VAEShell():
                 if save:                
                     if self.params['DDP']:
                         if rank ==0:
-                            self.save(self.current_state, epoch_str)
+                            self.save(self.current_state, epoch_str,path=self.params['save_dir'])
                     else: 
                         self.save(self.current_state, epoch_str,path=self.params['save_dir'])
 
@@ -705,7 +705,11 @@ class VAEShell():
             mems (np.array): Array of model memory vectors
         """
         with torch.no_grad():
-            data = vae_data_gen(data,max_len=self.src_len,name=self.name, char_dict=self.params['CHAR_DICT'])
+            data = vae_data_gen(data,
+                                max_len=self.src_len,
+                                name=self.name, 
+                                char_dict=self.params['CHAR_DICT'],
+                                d_pp_out=self.params['d_pp_out'])
             data_iter = torch.utils.data.DataLoader(data,
                                                     batch_size=self.params['BATCH_SIZE'],
                                                     shuffle=False, num_workers=0,
@@ -828,7 +832,11 @@ class VAEShell():
             mus(np.array): Mean memory array (prior to reparameterization)
             logvars(np.array): Log variance array (prior to reparameterization)
         """
-        data = vae_data_gen(data, max_len=self.src_len,name=self.name,props=None, char_dict=self.params['CHAR_DICT'])
+        data = vae_data_gen(data, 
+                            max_len=self.src_len,
+                            name=self.name,props=None, 
+                            char_dict=self.params['CHAR_DICT'],
+                            d_pp_out=self.params["d_pp_out"])
 
         data_iter = torch.utils.data.DataLoader(data,
                                                 batch_size=self.params['BATCH_SIZE'],
@@ -1013,7 +1021,7 @@ class PropertyPredictor(nn.Module):
                 if condn1:
                     x = self._last_layer_nn(x, prediction_layer)
                 else:
-                    x = torch.leaky_relu(prediction_layer(x))
+                    x = F.leaky_relu(prediction_layer(x))
         return x
 
 ############## Embedding Layers ###################
