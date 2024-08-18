@@ -109,7 +109,7 @@ def main(data_X, data_Y, params):
         logging.info("loading ESM model...")
         model = EsmWrapper(params)
         with torch.no_grad():
-            mu = model.encode(data_X.to_numpy())
+            mu = model.encode(list(data_X.to_numpy().flatten()))
 
     #########################################
     # build a dimensionality reduction method
