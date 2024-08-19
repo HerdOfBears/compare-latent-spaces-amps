@@ -14,6 +14,8 @@ from transformers import AdamW, get_linear_schedule_with_warmup
 from peft import PeftModel, LoraConfig
 from peft import get_peft_config, get_peft_model
 
+from sklearn.model_selection import train_test_split
+
 def peft_save(peft_model, peft_config, output_path, epoch):
     # Save the fine-tuned model
     _path_parts = output_path.split("/")
@@ -51,6 +53,9 @@ def lora_fine_tune_esm2(sequences, targets, peft_model, tokenizer, epochs=3, bat
     # check if it's working
     peft_model.print_trainable_parameters()
 
+    print("train-test split")
+    sequences, sequences_test, targets, targets_test = train_test_split(sequences, targets, test_size=0.2, random_state=42)
+
     print("setting up adamW")
     # Optimizer and scheduler setup
     optimizer = AdamW(peft_model.parameters(), lr=5e-5)
@@ -61,14 +66,21 @@ def lora_fine_tune_esm2(sequences, targets, peft_model, tokenizer, epochs=3, bat
 
     # Tokenize the sequences
     print(f"tokenizing...")
-    inputs = tokenizer(sequences.tolist(), return_tensors='pt', padding=True, truncation=True).to(device)
+    inputs      = tokenizer(sequences.tolist(),      return_tensors='pt', padding=True, truncation=True).to(device)
+    inputs_test = tokenizer(sequences_test.tolist(), return_tensors='pt', padding=True, truncation=True).to(device)
 
-    labels = torch.tensor(targets, dtype=torch.float32).unsqueeze(1).to(device)
+    labels      = torch.tensor(targets,      dtype=torch.float32).unsqueeze(1).to(device)
+    labels_test = torch.tensor(targets_test, dtype=torch.float32).unsqueeze(1).to(device)
 
     print(f"training loop")
+    n_batches = math.ceil(len(sequences) / batch_size)
     peft_model.train()
     for epoch in range(epochs):
         t0 = time.time()
+        
+        ########################################
+        ## training loop
+        avg_train_loss = 0.0
         for i in range(0, len(sequences), batch_size):
             batch_inputs = {key: val[i:i + batch_size].to(device) for key, val in inputs.items()}
             batch_labels = labels[i:i + batch_size].to(device)
@@ -81,8 +93,18 @@ def lora_fine_tune_esm2(sequences, targets, peft_model, tokenizer, epochs=3, bat
             optimizer.step()
             scheduler.step()
             optimizer.zero_grad()
-        tf = time.time()
-        print(f"Epoch {epoch+1}/{epochs}, loss {loss.item()}, time elapsed {tf-t0}s")
+
+            avg_train_loss += loss.item()
+        tf1 = time.time()
+
+        ########################################
+        ## validation loop
+        peft_model.eval()
+        with torch.no_grad():
+            valid_outputs = peft_model(**inputs_test, labels=labels_test)
+            valid_mse_loss = valid_outputs.loss.item()
+        tf2 = time.time()
+        print(f"Epoch {epoch+1}/{epochs}, train avg mse loss {avg_train_loss/n_batches}, valid mse loss = {valid_mse_loss} train loop time {tf1-t0}s, valid loop time {tf2-tf1}s")
 
         if params.save_freq is not None:
             if (epoch+1) % params.save_freq == 0:
@@ -140,8 +162,8 @@ if __name__ == "__main__":
                                      params=args)
 
 
-    # Save the fine-tuned model
-    peft_model.save_pretrained( args.output_path)
-    peft_config_dict = peft_config.to_dict()
-    with open(f"{args.output_path}/peft_config_test.pkl", "wb") as f:
-        pkl.dump(peft_config_dict, f)
+    # [deprecated; saves inside loop now] Save the fine-tuned model
+    # peft_model.save_pretrained( args.output_path)
+    # peft_config_dict = peft_config.to_dict()
+    # with open(f"{args.output_path}/peft_config_test.pkl", "wb") as f:
+    #     pkl.dump(peft_config_dict, f)
