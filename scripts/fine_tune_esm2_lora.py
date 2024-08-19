@@ -16,6 +16,18 @@ from peft import get_peft_config, get_peft_model
 
 def peft_save(peft_model, peft_config, output_path, epoch):
     # Save the fine-tuned model
+    _path_parts = output_path.split("/")
+    if output_path[-1] == "/":
+        _idx = -2
+    else:
+        _idx = -1
+    _last_name=f"{epoch}_" + _path_parts[_idx]
+
+    if len(_path_parts) == 1:
+        output_path = _last_name + "/"
+    else:
+        output_path = "/".join(output_path.split("/")[:-1]) + "/" + _last_name + "/"
+
     peft_model.save_pretrained( output_path)
     peft_config_dict = peft_config.to_dict()
     with open(f"{output_path}/{epoch}_peft_config_test.pkl", "wb") as f:
