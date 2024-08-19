@@ -41,7 +41,9 @@ def lora_fine_tune_esm2(sequences, targets, peft_model, tokenizer, epochs=3, bat
     lora_config = LoraConfig(
         r=8,  # Rank of the adaptation matrix
         lora_alpha=32,  # Scaling factor
-        target_modules=["query", "key", "value"],  # Targeting specific layers for adaptation
+        target_modules=["query", "key", "value"],  # Targeting specific layers for adaptation,
+        modules_to_save=["classifier.dense",
+                         "classifier.out_proj"],  # these will be trained normally.
         lora_dropout=0.1  # Dropout rate
     )
     if device is None:
