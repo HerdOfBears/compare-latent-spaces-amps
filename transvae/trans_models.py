@@ -180,22 +180,22 @@ class VAEShell():
 
         #SPECIAL DATA INPUT FOR DDP
         if self.params['DDP']:
-            train_sampler = torch.utils.data.distributed.DistributedSampler(train_data, shuffle=True)
-            val_sampler = torch.utils.data.distributed.DistributedSampler(val_data, shuffle=True)
-            train_iter = torch.utils.data.DataLoader(train_data,
+            train_sampler   = torch.utils.data.distributed.DistributedSampler(train_data, shuffle=True)
+            val_sampler     = torch.utils.data.distributed.DistributedSampler(  val_data, shuffle=True)
+            train_iter  = torch.utils.data.DataLoader(train_data,
                                                 batch_size=self.params['BATCH_SIZE'],
                                                 num_workers=0,
                                                 pin_memory=False, drop_last=True, sampler=train_sampler)
-            val_iter = torch.utils.data.DataLoader(val_data,
+            val_iter    = torch.utils.data.DataLoader(val_data,
                                                 batch_size=self.params['BATCH_SIZE'],
                                                 num_workers=0,
                                                 pin_memory=False, drop_last=True, sampler=val_sampler)
         else:
-            train_iter = torch.utils.data.DataLoader(train_data,
+            train_iter  = torch.utils.data.DataLoader(train_data,
                                                  batch_size=self.params['BATCH_SIZE'],
                                                  shuffle=True, num_workers=0,
                                                  pin_memory=False, drop_last=True)
-            val_iter = torch.utils.data.DataLoader(val_data,
+            val_iter    = torch.utils.data.DataLoader(val_data,
                                                batch_size=self.params['BATCH_SIZE'],
                                                shuffle=True, num_workers=0,
                                                pin_memory=False, drop_last=True)
@@ -238,6 +238,8 @@ class VAEShell():
             contrastive_kl_start = _m*self.n_epochs + contrastive_kl_start
         contrastive_annealer = KLAnnealer(contrastive_kl_start, 1.0,
                                           _total_epochs, self.params['ANNEAL_START'])
+        
+        property_annealer = KLAnnealer(0.0, 1.0, 100, 0)
         ####################################################################################################
         ### Epoch loop start
         for epoch in range(epochs):
@@ -260,6 +262,7 @@ class VAEShell():
             losses = []
             beta = kl_annealer(epoch)
             beta_contrastive = contrastive_annealer(epoch)
+            beta_property = property_annealer(epoch+self.n_epochs)
 
             for j, data in enumerate(train_iter):
                 avg_losses          = []
