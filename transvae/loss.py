@@ -52,13 +52,13 @@ def vae_loss(x, x_out, mu, logvar, true_prop, pred_prop, weights, self, beta=1):
         KLD = torch.tensor(0.)
     return BCE + KLD + bce_prop, BCE, KLD, bce_prop
 
-def trans_vae_loss(x, x_out, mu, logvar, true_len, pred_len, true_prop, pred_prop, weights, self, beta=1):
+def trans_vae_loss(x, x_out, mu, logvar, true_len, pred_len, true_prop, pred_prop, weights, self, beta=1,beta_property=1):
     "Binary Cross Entropy Loss + Kullbach leibler Divergence + Mask Length Prediction"
     x = x.long()[:,1:] - 1
     x = x.contiguous().view(-1)
     x_out = x_out.contiguous().view(-1, x_out.size(2))
     true_len = true_len.contiguous().view(-1)
-    BCEmol = F.cross_entropy(x_out, x, reduction='mean', weight=weights)
+    BCEmol  = F.cross_entropy(x_out, x,           reduction='mean', weight=weights)
     BCEmask = F.cross_entropy(pred_len, true_len, reduction='mean')
     KLD = beta * -0.5 * torch.mean(1 + logvar - mu.pow(2) - logvar.exp())
     if pred_prop is not None:
@@ -89,6 +89,8 @@ def trans_vae_loss(x, x_out, mu, logvar, true_len, pred_len, true_prop, pred_pro
                         )
                         prop_losses.append( _prop_loss )
                 bce_prop = torch.sum(torch.stack(prop_losses))
+            
+            bce_prop = beta_property * bce_prop
             #bce_prop = F.binary_cross_entropy(pred_prop.squeeze(-1), true_prop)
             # bce_prop = F.cross_entropy(pred_prop.squeeze(-1), true_prop)
     else:
