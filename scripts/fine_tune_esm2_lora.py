@@ -14,7 +14,14 @@ from transformers import AdamW, get_linear_schedule_with_warmup
 from peft import PeftModel, LoraConfig
 from peft import get_peft_config, get_peft_model
 
-def lora_fine_tune_esm2(sequences, targets, peft_model, tokenizer, epochs=3, batch_size=16,device=None):
+def peft_save(peft_model, peft_config, output_path, epoch):
+    # Save the fine-tuned model
+    peft_model.save_pretrained( output_path)
+    peft_config_dict = peft_config.to_dict()
+    with open(f"{output_path}/{epoch}_peft_config_test.pkl", "wb") as f:
+        pkl.dump(peft_config_dict, f)
+
+def lora_fine_tune_esm2(sequences, targets, peft_model, tokenizer, epochs=3, batch_size=16,device=None, params={}):
 
     # Initialize LoRA configuration
     lora_config = LoraConfig(
@@ -65,6 +72,11 @@ def lora_fine_tune_esm2(sequences, targets, peft_model, tokenizer, epochs=3, bat
         tf = time.time()
         print(f"Epoch {epoch+1}/{epochs}, loss {loss.item()}, time elapsed {tf-t0}s")
 
+        if params.save_freq is not None:
+            if (epoch+1) % params.save_freq == 0:
+                print(f"saving model at {epoch+1}")
+                peft_save(peft_model, lora_config, params.output_path, epoch+1)
+
 
     return peft_model, lora_config
 
@@ -77,6 +89,10 @@ if __name__ == "__main__":
     parser.add_argument("--output_path", type=str, required=True)
     parser.add_argument("--num_labels", type=int, required=True,
                         help="Number of labels for the classification. For regression, set to 1.")
+    
+    # saving args
+    parser.add_argument("--save_freq", type=int, default=10,
+                        help="Save model every SAVE_FREQ epochs")
 
     parser.add_argument("--epochs", type=int, default=5)
     parser.add_argument("--batch_size", type=int, default=32)
@@ -108,7 +124,8 @@ if __name__ == "__main__":
                                      tokenizer,
                                      epochs=args.epochs,
                                      batch_size=args.batch_size,
-                                     device=device)
+                                     device=device,
+                                     params=args)
 
 
     # Save the fine-tuned model
