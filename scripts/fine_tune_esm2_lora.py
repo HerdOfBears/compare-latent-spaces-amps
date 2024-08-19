@@ -76,7 +76,7 @@ if __name__ == "__main__":
     parser.add_argument("--data", type=str, required=True,)
     parser.add_argument("--output_path", type=str, required=True)
     parser.add_argument("--num_labels", type=int, required=True,
-                        description="Number of labels for the classification. For regression, set to 1.")
+                        help="Number of labels for the classification. For regression, set to 1.")
 
     parser.add_argument("--epochs", type=int, default=5)
     parser.add_argument("--batch_size", type=int, default=32)
