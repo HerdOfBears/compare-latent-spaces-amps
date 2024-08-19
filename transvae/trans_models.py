@@ -312,7 +312,7 @@ class VAEShell():
                                                                             true_len, pred_len,
                                                                             true_prop, pred_prop,
                                                                             self.params['CHAR_WEIGHTS'], self,
-                                                                            beta)
+                                                                            beta, beta_property=beta_property)
                         avg_bcemask_losses.append(bce_mask.item())
                         
                     if self.model_type == 'aae': #the aae loss is calculated in the forward function due to the 2 backward passes
@@ -469,7 +469,7 @@ class VAEShell():
                                                                             true_len, pred_len,
                                                                             true_prop, pred_prop,
                                                                             self.params['CHAR_WEIGHTS'], self,
-                                                                            beta)
+                                                                            beta, beta_property=beta_property)
                         avg_bcemask_losses.append(bce_mask.item())
                         
                     if self.model_type == 'aae':
