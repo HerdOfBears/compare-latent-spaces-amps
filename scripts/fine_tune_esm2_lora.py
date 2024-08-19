@@ -14,7 +14,7 @@ from transformers import AdamW, get_linear_schedule_with_warmup
 from peft import PeftModel, LoraConfig
 from peft import get_peft_config, get_peft_model
 
-def lora_fine_tune_esm2(sequences, targets,model, tokenizer, epochs=3, batch_size=16,device=None):
+def lora_fine_tune_esm2(sequences, targets, peft_model, tokenizer, epochs=3, batch_size=16,device=None):
 
     # Initialize LoRA configuration
     lora_config = LoraConfig(
@@ -27,39 +27,46 @@ def lora_fine_tune_esm2(sequences, targets,model, tokenizer, epochs=3, batch_siz
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Apply LoRA to the model
-    peft_model = get_peft_model(model, lora_config).to(device)
+    peft_model = get_peft_model(peft_model, lora_config).to(device)
 
     # check if it's working
     peft_model.print_trainable_parameters()
 
+    print("setting up adamW")
     # Optimizer and scheduler setup
     optimizer = AdamW(peft_model.parameters(), lr=5e-5)
+    print("setting up scehduler")
     scheduler = get_linear_schedule_with_warmup(
         optimizer, num_warmup_steps=0, num_training_steps=epochs * len(sequences) // batch_size
     )
 
     # Tokenize the sequences
+    print(f"tokenizing...")
     inputs = tokenizer(sequences.tolist(), return_tensors='pt', padding=True, truncation=True).to(device)
-        
-    labels = torch.tensor(targets.values, dtype=torch.float32).unsqueeze(1).to(device)
 
+    labels = torch.tensor(targets, dtype=torch.float32).unsqueeze(1).to(device)
+
+    print(f"training loop")
     peft_model.train()
     for epoch in range(epochs):
+        t0 = time.time()
         for i in range(0, len(sequences), batch_size):
             batch_inputs = {key: val[i:i + batch_size].to(device) for key, val in inputs.items()}
             batch_labels = labels[i:i + batch_size].to(device)
-            
+
             outputs = peft_model(**batch_inputs, labels=batch_labels)
-            
+
             loss = outputs.loss
             loss.backward()
-            
+
             optimizer.step()
             scheduler.step()
             optimizer.zero_grad()
-    
-    return peft_model, lora_config
+        tf = time.time()
+        print(f"Epoch {epoch+1}/{epochs}, loss {loss.item()}, time elapsed {tf-t0}s")
 
+
+    return peft_model, lora_config
 
 if __name__ == "__main__":
 
