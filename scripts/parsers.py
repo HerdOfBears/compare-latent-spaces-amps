@@ -93,7 +93,9 @@ def train_parser():
     
     ###############################
     ### Data Parameters
-    parser.add_argument('--data_source', choices=['zinc', 'pubchem','peptide','peptides_renaud','custom','cdd','peptides_2024'],
+    parser.add_argument('--data_source', choices=['zinc', 'pubchem','peptide',
+                                                  'peptides_renaud','custom','cdd',
+                                                  'peptides_2024',"peptides_2024_cdhit90_unbalanced"],
                         required=True, type=str)
     parser.add_argument('--train_mols_path', default=None, type=str)
     parser.add_argument('--test_mols_path', default=None, type=str)
