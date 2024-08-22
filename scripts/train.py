@@ -1,3 +1,5 @@
+from comet_ml import Experiment
+
 import os
 import pickle
 import pkg_resources
@@ -151,6 +153,12 @@ if __name__ == '__main__':
     print("main function called /n")
     parser = train_parser()
     args = parser.parse_args()
+
+    if args.comet == "ON":
+        experiment = Experiment(api_key=args.comet_api_key, 
+                                project_name=args.comet_project_name
+                        )
+        experiment.log_parameters(vars(args))
 
     logfilename = args.logfile
     logging.basicConfig(level=logging.INFO,

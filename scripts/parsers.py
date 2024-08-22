@@ -58,6 +58,12 @@ def train_parser():
     parser = argparse.ArgumentParser()
 
     ###############################
+    ### Comet ML parameters
+    parser.add_argument('--comet', choices=['ON', 'OFF'], default='OFF', type=str)
+    parser.add_argument('--comet_api_key', type=str, default=None)
+    parser.add_argument('--comet_project_name', type=str, default=None)
+
+    ###############################
     ### Architecture Parameters
     parser.add_argument('--model', choices=['transvae', 'rnnattn', 'rnn', 'aae', 'wae'],
                         required=True, type=str)
