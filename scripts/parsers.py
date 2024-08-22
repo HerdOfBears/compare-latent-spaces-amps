@@ -30,7 +30,7 @@ def model_init(args, params={}):
     ### Load Model
     if args.model == 'transvae':
         vae = TransVAE(params=params, name=save_name, d_model=args.d_model,
-                       d_ff=args.d_feedforward, d_latent=args.d_latent,
+                       d_ff=args.d_feedforward, d_latent=args.d_latent, N=args.N,
                        property_predictor=args.property_predictor, d_pp=args.d_property_predictor,
                        depth_pp=args.depth_property_predictor, type_pp=args.type_property_predictor)
     elif args.model == 'rnnattn':
@@ -70,6 +70,7 @@ def train_parser():
     parser.add_argument('--d_model', default=128, type=int)
     parser.add_argument('--d_feedforward', default=128, type=int)
     parser.add_argument('--d_latent', default=128, type=int)
+    parser.add_argument('--N', default=3, type=int, help="Number of encoder/decoder layers (or 'blocks')")
     
     # property predictor parameters
     parser.add_argument('--property_predictor', choices=['ON', 'OFF'], default='OFF', type=str)
