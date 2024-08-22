@@ -1,3 +1,5 @@
+import comet_ml
+
 import os
 import json
 import logging
@@ -146,7 +148,7 @@ class VAEShell():
             
     def train(self, train_mols, val_mols, train_props=None, val_props=None,
               epochs=200, use_isometry_loss=False, pairwise_distances=None, inputs_w_distances=None,
-              save=True, save_freq=None, log=True, log_dir='trials'):
+              save=True, save_freq=None, log=True, log_dir='trials', comet_experiment=None):
         """
         Train model and validate
 
@@ -260,6 +262,10 @@ class VAEShell():
             ##################################
             self.model.train()
             losses = []
+            recon_losses = []
+            prop_losses  = []
+            kld_losses   = []
+            contrastive_losses = []
             beta = kl_annealer(epoch)
             beta_contrastive = contrastive_annealer(epoch)
             beta_property = property_annealer(epoch+self.n_epochs)
@@ -399,7 +405,12 @@ class VAEShell():
                 avg_kld      = np.mean(avg_kld_losses)
                 avg_prop_bce = np.mean(avg_prop_bce_losses)
                 avg_rmsd     = np.mean(avg_isometry_losses)
+                
                 losses.append(avg_loss)
+                recon_losses.append(avg_bce)
+                prop_losses.append(avg_prop_bce)
+                kld_losses.append(avg_kld)
+                contrastive_losses.append(avg_rmsd)
 
                 if log:
                     log_file = open(log_fn, 'a')
@@ -415,13 +426,20 @@ class VAEShell():
                                                                          avg_rmsd,
                                                                          run_time))
                     log_file.close()
-            train_loss = np.mean(losses)
-
+            train_loss      = np.mean(losses)
+            train_bce_loss  = np.mean(recon_losses)
+            train_prop_loss = np.mean(prop_losses)
+            train_kld_loss  = np.mean(kld_losses)
+            train_rmsd_loss = np.mean(contrastive_losses)
             ##############################
             ### Validation Loop
             ##############################
             self.model.eval()
             losses = []
+            recon_losses = []
+            prop_losses  = []
+            kld_losses   = []
+            contrastive_losses = []   
             for j, data in enumerate(val_iter):
                 avg_losses          = []
                 avg_bce_losses      = []
@@ -549,7 +567,10 @@ class VAEShell():
                 avg_prop_bce = np.mean(avg_prop_bce_losses)
                 avg_rmsd     = np.mean(avg_isometry_losses)
                 losses.append(avg_loss)
-                
+                recon_losses.append(avg_bce)
+                prop_losses.append(avg_prop_bce)
+                kld_losses.append(avg_kld)
+                contrastive_losses.append(avg_rmsd)   
                 if log:
                     log_file = open(log_fn, 'a')
                     log_file.write('{},{},{},{},{},{},{},{},{},{},{},{}\n'.format(self.n_epochs,
@@ -567,12 +588,36 @@ class VAEShell():
 
             self.n_epochs += 1
             val_loss = np.mean(losses)
+            val_bce_loss  = np.mean(recon_losses)
+            val_prop_loss = np.mean(prop_losses)
+            val_kld_loss  = np.mean(kld_losses)
+            val_rmsd_loss = np.mean(contrastive_losses)
             epoch_end_time = perf_counter()
             epoch_time = round(epoch_start_time - epoch_end_time, 5)
             if self.params['DDP']:
                 os.system("echo Epoch - {} Train - {} Val - {} KLBeta - {} Epoch time - {}".format(self.n_epochs, train_loss, val_loss, beta, epoch_time))
             else:
                 print('Epoch - {} Train - {} Val - {} KLBeta - {} Epoch time - {}'.format(self.n_epochs, train_loss, val_loss, beta, epoch_time))
+                
+                if comet_experiment is not None:
+                    _comet_package = {
+                        "train_loss": train_loss,
+                        "train_reconstruction_loss": train_bce_loss,
+                        "train_kld_loss": train_kld_loss,
+                        "train_property_loss": train_prop_loss,
+                        "train_contrastive_loss": train_rmsd_loss,
+
+                        "val_loss": val_loss,
+                        "val_reconstruction_loss": val_bce_loss,
+                        "val_kld_loss": val_kld_loss,
+                        "val_property_loss": val_prop_loss,
+                        "val_contrastive_loss": val_rmsd_loss,
+
+                        "kl_beta": beta,
+                        "prop_beta": beta_property,
+                        "epoch_time": epoch_time
+                    }
+                    comet_experiment.log_metric(_comet_package,step=epoch)
 
             ### Update current state and save model
             self.current_state['epoch'] = self.n_epochs
