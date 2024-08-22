@@ -2,6 +2,7 @@ import comet_ml
 
 import os
 import json
+import sys
 import logging
 from time import perf_counter
 import numpy as np
@@ -619,6 +620,12 @@ class VAEShell():
                     }
                     comet_experiment.log_metrics(_comet_package, step=epoch)
 
+            ### check if any loss has NaNed out, system exit with message and error code
+            if np.isnan(train_loss) or np.isnan(val_loss):
+                sys.exit("Loss is NaN, exiting")
+            # also check if inf
+            if np.isinf(train_loss) or np.isinf(val_loss):
+                sys.exit("Loss is inf, exiting")
             ### Update current state and save model
             self.current_state['epoch'] = self.n_epochs
             self.current_state['model_state_dict'] = self.model.state_dict()
