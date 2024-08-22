@@ -16,7 +16,7 @@ from transvae.rnn_models import RNN, RNNAttn
 from transvae.structure_prediction import StructurePredictor
 from scripts.parsers import model_init, train_parser
 
-def train(args):
+def train(args, comet_experiment=None):
     ### Update beta init parameter from loaded chekpoint
     if args.checkpoint is not None:
         ckpt = torch.load(args.checkpoint, map_location=torch.device('cuda'))
@@ -145,7 +145,8 @@ def train(args):
               epochs=args.epochs, save_freq=args.save_freq,
               use_isometry_loss=use_isometry_loss, 
               pairwise_distances=pairwise_distances, 
-              inputs_w_distances=inputs_w_distances
+              inputs_w_distances=inputs_w_distances, 
+              comet_experiment=comet_experiment
     )
 
 
@@ -159,6 +160,8 @@ if __name__ == '__main__':
                                 project_name=args.comet_project_name
                         )
         experiment.log_parameters(vars(args))
+    else:
+        experiment = None
 
     logfilename = args.logfile
     logging.basicConfig(level=logging.INFO,
@@ -176,4 +179,4 @@ if __name__ == '__main__':
         else:
             raise ValueError("prediction_types must be a list of strings or a list of lists of characters")
         args.prediction_types = fixed_prediction_types
-    train(args)
+    train(args, comet_experiment=experiment)
