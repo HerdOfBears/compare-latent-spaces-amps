@@ -617,7 +617,7 @@ class VAEShell():
                         "prop_beta": beta_property,
                         "epoch_time": epoch_time
                     }
-                    comet_experiment.log_metric(_comet_package,step=epoch)
+                    comet_experiment.log_metrics(_comet_package, step=epoch)
 
             ### Update current state and save model
             self.current_state['epoch'] = self.n_epochs
