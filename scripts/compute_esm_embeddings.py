@@ -101,6 +101,7 @@ if __name__ == "__main__":
 	data_fpath = args.data_fpath
 	output_dir = args.output_dir
 	TEST=args.test
+	output_name = args.output_name
 
 	if args.comet == "ON":
 		comet_api_key = args.comet_api_key
@@ -129,7 +130,7 @@ if __name__ == "__main__":
 
 	# Compute the likelihoods
 	print("Computing likelihoods...")
-	likelihoods = compute_likelihoods(
+	loglikelihoods = compute_likelihoods(
 		sequences, 
 		esm_model, 
 		esm_tokenizer, 
@@ -137,7 +138,8 @@ if __name__ == "__main__":
 		chunk_size=2000,
 		test=TEST
 	)
-
+	print("saving loglikelihoods...")
+	np.save(f'{output_dir}/loglikelihoods_{output_name}_-esm2_650m.npy', loglikelihoods)
 
 	# Compute the representations
 	print("Computing representations...")
@@ -151,7 +153,6 @@ if __name__ == "__main__":
 	)
 
 	# Save the likelihoods and representations
-	print("Saving likelihoods and representations...")
-	np.save(f'{output_dir}/loglikelihoods-esm2_650m.npy', likelihoods)
-	np.save(f'{output_dir}/representations-esm2_650m.npy', representations)
+	print("Saving representations...")
+	np.save(f'{output_dir}/representations_{output_name}_-esm2_650m.npy', representations)
 	print("Done!")
