@@ -432,6 +432,8 @@ class VAEShell():
             train_prop_loss = np.mean(prop_losses)
             train_kld_loss  = np.mean(kld_losses)
             train_rmsd_loss = np.mean(contrastive_losses)
+            
+            
             ##############################
             ### Validation Loop
             ##############################
@@ -588,10 +590,10 @@ class VAEShell():
                     log_file.close()
 
             self.n_epochs += 1
-            val_loss = np.mean(losses)
-            val_bce_loss  = np.mean(recon_losses)
-            val_prop_loss = np.mean(prop_losses)
-            val_kld_loss  = np.mean(kld_losses)
+            val_loss      = np.mean(            losses)
+            val_bce_loss  = np.mean(      recon_losses)
+            val_prop_loss = np.mean(       prop_losses)
+            val_kld_loss  = np.mean(        kld_losses)
             val_rmsd_loss = np.mean(contrastive_losses)
             epoch_end_time = perf_counter()
             epoch_time = round(epoch_start_time - epoch_end_time, 5)
@@ -618,7 +620,7 @@ class VAEShell():
                         "prop_beta": beta_property,
                         "epoch_time": epoch_time
                     }
-                    comet_experiment.log_metrics(_comet_package, step=epoch)
+                    comet_experiment.log_metrics(_comet_package, step=self.n_epochs)
 
             ### check if any loss has NaNed out, system exit with message and error code
             if np.isnan(train_loss) or np.isnan(val_loss):

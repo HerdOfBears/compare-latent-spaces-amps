@@ -1,4 +1,4 @@
-from comet_ml import Experiment
+from comet_ml import Experiment, ExistingExperiment
 
 import os
 import pickle
@@ -156,9 +156,19 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.comet == "ON":
-        experiment = Experiment(api_key=args.comet_api_key, 
-                                project_name=args.comet_project_name
-                        )
+        if (args.comet_experiment_key is not None):
+            if (len(args.comet_experiment_key) > 0):
+                experiment = ExistingExperiment(api_key=args.comet_api_key, 
+                                                previous_experiment=args.comet_experiment_key
+                                        )
+            else:
+                experiment = Experiment(api_key=args.comet_api_key, 
+                                        project_name=args.comet_project_name
+                )
+        else:
+            experiment = Experiment(api_key=args.comet_api_key, 
+                                    project_name=args.comet_project_name
+            )
         experiment.log_parameters(vars(args))
     else:
         experiment = None
