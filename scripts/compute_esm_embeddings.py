@@ -56,7 +56,7 @@ def compute_representations(sequences, model, tokenizer, device, chunk_size=1000
 	if test=="ON":
 		N_CHUNKS = 1
 		n_sequences = chunk_size
-		outputs = torch.zeros(n_sequences)
+		outputs = torch.zeros(n_sequences, model.config.hidden_size)
 
 	t0 = time.time()
 	with torch.no_grad():
@@ -73,7 +73,7 @@ def compute_representations(sequences, model, tokenizer, device, chunk_size=1000
 			repres = model(**_inputs).last_hidden_state[:,0,:] # take <cls> token to obtain sequence-level representation
 
 			# first token <cls> corresponds to sequence level representation
-			outputs[_chunk_idx*chunk_size:(_chunk_idx+1)*chunk_size,:] = repres.cpu()
+			outputs[_chunk_idx*chunk_size:(_chunk_idx+1)*chunk_size] = repres.cpu()
 	
 	return outputs
 
@@ -123,7 +123,7 @@ if __name__ == "__main__":
 	)
 
 	# Load the sequences
-	sequences = pd.read_csv(data_fpath)['sequence'].values
+	sequences = pd.read_csv(data_fpath).peptides.tolist()
 
 	# Set the device
 	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
