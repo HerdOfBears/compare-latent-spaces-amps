@@ -127,6 +127,8 @@ if __name__ == "__main__":
 
 	# Set the device
 	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+	
+	esm_model = esm_model.to(device)
 
 	# Compute the likelihoods
 	print("Computing likelihoods...")
