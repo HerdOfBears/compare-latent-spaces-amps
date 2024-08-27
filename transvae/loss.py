@@ -54,13 +54,15 @@ def vae_loss(x, x_out, mu, logvar, true_prop, pred_prop, weights, self, beta=1):
 
 def trans_vae_loss(x, x_out, mu, logvar, true_len, pred_len, true_prop, pred_prop, weights, self, beta=1,beta_property=1):
     "Binary Cross Entropy Loss + Kullbach leibler Divergence + Mask Length Prediction"
+    batch_size, _ = x.size()
     x = x.long()[:,1:] - 1
     x = x.contiguous().view(-1)
     x_out = x_out.contiguous().view(-1, x_out.size(2))
     true_len = true_len.contiguous().view(-1)
     BCEmol  = F.cross_entropy(x_out, x,           reduction='mean', weight=weights)
     BCEmask = F.cross_entropy(pred_len, true_len, reduction='mean')
-    KLD = beta * -0.5 * torch.mean(1 + logvar - mu.pow(2) - logvar.exp())
+    # KLD = beta * -0.5 * torch.mean(1 + logvar - mu.pow(2) - logvar.exp())
+    KLD = beta * -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp()) / batch_size
     if pred_prop is not None:
         if "decision_tree" in self.params["type_pp"]:
             print(pred_prop)
