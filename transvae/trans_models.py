@@ -373,7 +373,18 @@ class VAEShell():
                         loss = loss + isometry_loss_weighting*isometry_loss
                     else:
                         isometry_loss = torch.tensor(0.0)
-
+                    
+                    # perform all reduce if using 'gpu' hardware
+                    if self.params['HARDWARE'] == 'gpu':
+                        loss     = reduce_tensor(loss)
+                        bce      = reduce_tensor(bce)
+                        kld      = reduce_tensor(kld)
+                        prop_bce = reduce_tensor(prop_bce)
+                        if use_isometry_loss:
+                            isometry_loss = reduce_tensor(isometry_loss)
+                        else:
+                            isometry_loss = torch.tensor(0.0)
+                    
                     avg_losses.append(              loss.item())
                     avg_bce_losses.append(           bce.item())
                     avg_kld_losses.append(           kld.item())
@@ -544,6 +555,17 @@ class VAEShell():
                     else:
                         isometry_loss = torch.tensor(0.0)
 
+                    # perform all reduce if using 'gpu' hardware
+                    if self.params['HARDWARE'] == 'gpu':
+                        loss     = reduce_tensor(loss)
+                        bce      = reduce_tensor(bce)
+                        kld      = reduce_tensor(kld)
+                        prop_bce = reduce_tensor(prop_bce)
+                        if use_isometry_loss:
+                            isometry_loss = reduce_tensor(isometry_loss)
+                        else:
+                            isometry_loss = torch.tensor(0.0)
+
                     avg_losses.append(             loss.item())
                     avg_bce_losses.append(          bce.item())
                     avg_kld_losses.append(          kld.item())
@@ -601,30 +623,19 @@ class VAEShell():
             if self.params['DDP']:
                 os.system("echo from rank {} Epoch - {} Train - {} Val - {} KLBeta - {} Epoch time - {}".format(rank, self.n_epochs, train_loss, val_loss, beta, epoch_time))
 
-                if comet_experiment is not None:
-                    _reduced_train_loss      = reduce_tensor(torch.tensor(     train_loss))
-                    _reduced_train_bce_loss  = reduce_tensor(torch.tensor( train_bce_loss))
-                    _reduced_train_kld_loss  = reduce_tensor(torch.tensor( train_kld_loss))
-                    _reduced_train_prop_loss = reduce_tensor(torch.tensor(train_prop_loss))
-
-                    _reduced_val_loss       = reduce_tensor(torch.tensor(     val_loss))
-                    _reduced_val_bce_loss   = reduce_tensor(torch.tensor( val_bce_loss))
-                    _reduced_val_kld_loss   = reduce_tensor(torch.tensor( val_kld_loss))
-                    _reduced_val_prop_loss  = reduce_tensor(torch.tensor(val_prop_loss))
-
-                    # package together into _comet_package
+                if (comet_experiment is not None) and (rank==0):
                     _comet_package = {
-                        "train_loss": _reduced_train_loss.item(),
-                        "train_reconstruction_loss": _reduced_train_bce_loss.item(),
-                        "train_kld_loss": _reduced_train_kld_loss.item(),
-                        "train_property_loss": _reduced_train_prop_loss.item(),
-                        "train_contrastive_loss": 0.0,
+                        "train_loss": train_loss,
+                        "train_reconstruction_loss": train_bce_loss,
+                        "train_kld_loss": train_kld_loss,
+                        "train_property_loss": train_prop_loss,
+                        "train_contrastive_loss": train_rmsd_loss,
 
-                        "val_loss": _reduced_val_loss.item(),
-                        "val_reconstruction_loss": _reduced_val_bce_loss.item(),
-                        "val_kld_loss": _reduced_val_kld_loss.item(),
-                        "val_property_loss": _reduced_val_prop_loss.item(),
-                        "val_contrastive_loss": 0.0,
+                        "val_loss": val_loss,
+                        "val_reconstruction_loss": val_bce_loss,
+                        "val_kld_loss": val_kld_loss,
+                        "val_property_loss": val_prop_loss,
+                        "val_contrastive_loss": val_rmsd_loss,
 
                         "kl_beta": beta,
                         "prop_beta": beta_property,
