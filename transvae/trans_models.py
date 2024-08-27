@@ -17,6 +17,7 @@ from transvae.tvae_util import *
 from transvae.opt import NoamOpt
 from transvae.data import vae_data_gen, make_std_mask
 from transvae.loss import vae_loss, trans_vae_loss, aae_loss, wae_loss, deep_isometry_loss
+from transvae.DDP import reduce_tensor
 
 import torch.distributed as dist
 import torch.utils.data.distributed
@@ -120,7 +121,7 @@ class VAEShell():
         self.vocab_size = len(self.current_state['params']['CHAR_DICT'].keys())
         self.pad_idx   = self.current_state['params']['CHAR_DICT']['_']
         state_dict     = self.current_state['model_state_dict']
-        self.name      = self.current_state['name']
+        seloptimizer_state_dictf.name      = self.current_state['name']
         self.n_epochs  = self.current_state['epoch']
         self.best_loss = self.current_state['best_loss']
         #This is the last key in the outer dict. Need to match the values from the ckpt.
@@ -598,7 +599,38 @@ class VAEShell():
             epoch_end_time = perf_counter()
             epoch_time = round(epoch_start_time - epoch_end_time, 5)
             if self.params['DDP']:
-                os.system("echo Epoch - {} Train - {} Val - {} KLBeta - {} Epoch time - {}".format(self.n_epochs, train_loss, val_loss, beta, epoch_time))
+                os.system("echo from rank {} Epoch - {} Train - {} Val - {} KLBeta - {} Epoch time - {}".format(rank, self.n_epochs, train_loss, val_loss, beta, epoch_time))
+
+                if comet_experiment is not None:
+                    _reduced_train_loss      = reduce_tensor(torch.tensor(     train_loss))
+                    _reduced_train_bce_loss  = reduce_tensor(torch.tensor( train_bce_loss))
+                    _reduced_train_kld_loss  = reduce_tensor(torch.tensor( train_kld_loss))
+                    _reduced_train_prop_loss = reduce_tensor(torch.tensor(train_prop_loss))
+
+                    _reduced_val_loss       = reduce_tensor(torch.tensor(     val_loss))
+                    _reduced_val_bce_loss   = reduce_tensor(torch.tensor( val_bce_loss))
+                    _reduced_val_kld_loss   = reduce_tensor(torch.tensor( val_kld_loss))
+                    _reduced_val_prop_loss  = reduce_tensor(torch.tensor(val_prop_loss))
+
+                    # package together into _comet_package
+                    _comet_package = {
+                        "train_loss": _reduced_train_loss.item(),
+                        "train_reconstruction_loss": _reduced_train_bce_loss.item(),
+                        "train_kld_loss": _reduced_train_kld_loss.item(),
+                        "train_property_loss": _reduced_train_prop_loss.item(),
+                        "train_contrastive_loss": 0.0,
+
+                        "val_loss": _reduced_val_loss.item(),
+                        "val_reconstruction_loss": _reduced_val_bce_loss.item(),
+                        "val_kld_loss": _reduced_val_kld_loss.item(),
+                        "val_property_loss": _reduced_val_prop_loss.item(),
+                        "val_contrastive_loss": 0.0,
+
+                        "kl_beta": beta,
+                        "prop_beta": beta_property,
+                        "epoch_time": epoch_time
+                    }
+                    comet_experiment.log_metrics(_comet_package, step=self.n_epochs)
             else:
                 print('Epoch - {} Train - {} Val - {} KLBeta - {} Epoch time - {}'.format(self.n_epochs, train_loss, val_loss, beta, epoch_time))
                 

@@ -72,4 +72,12 @@ def DDP_init(self):
 
     self.model = torch.nn.parallel.DistributedDataParallel(self.model, device_ids=[current_device])
     print('passed distributed data parallel call')
-         
+
+
+def reduce_tensor(tensor):
+    rt = tensor.clone().detach()
+    dist.all_reduce(rt, op=dist.ReduceOp.SUM)
+    rt /= (
+        torch.distributed.get_world_size() if torch.distributed.is_initialized() else 1
+    )
+    return rt
