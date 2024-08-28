@@ -376,9 +376,9 @@ class VAEShell():
                     
                     # perform all reduce if using 'gpu' hardware
                     if self.params['HARDWARE'] == 'gpu':
-                        loss     = reduce_tensor(loss)
-                        bce      = reduce_tensor(bce)
-                        kld      = reduce_tensor(kld)
+                        loss_reduced = reduce_tensor(loss)
+                        bce          = reduce_tensor(bce)
+                        kld          = reduce_tensor(kld)
                         if prop_bce.device.type == 'cuda':
                             prop_bce = reduce_tensor(prop_bce)
 
@@ -387,7 +387,7 @@ class VAEShell():
                         else:
                             isometry_loss = torch.tensor(0.0)
                     
-                    avg_losses.append(              loss.item())
+                    avg_losses.append(      loss_reduced.item())
                     avg_bce_losses.append(           bce.item())
                     avg_kld_losses.append(           kld.item())
                     avg_prop_bce_losses.append( prop_bce.item())
@@ -559,9 +559,9 @@ class VAEShell():
 
                     # perform all reduce if using 'gpu' hardware
                     if self.params['HARDWARE'] == 'gpu':
-                        loss     = reduce_tensor(loss)
-                        bce      = reduce_tensor(bce)
-                        kld      = reduce_tensor(kld)
+                        loss_reduced = reduce_tensor(loss)
+                        bce          = reduce_tensor(bce)
+                        kld          = reduce_tensor(kld)
                         if prop_bce.device.type == 'cuda':
                             prop_bce = reduce_tensor(prop_bce)
                         
@@ -570,7 +570,7 @@ class VAEShell():
                         else:
                             isometry_loss = torch.tensor(0.0)
 
-                    avg_losses.append(             loss.item())
+                    avg_losses.append(     loss_reduced.item())
                     avg_bce_losses.append(          bce.item())
                     avg_kld_losses.append(          kld.item())
                     avg_prop_bce_losses.append(prop_bce.item())
