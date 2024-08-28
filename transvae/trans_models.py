@@ -374,8 +374,8 @@ class VAEShell():
                     else:
                         isometry_loss = torch.tensor(0.0)
                     
-                    # perform all reduce if using 'gpu' hardware
-                    if self.params['HARDWARE'] == 'gpu':
+                    # perform all reduce if distributed training
+                    if self.params['DDP']:
                         loss_reduced = reduce_tensor(loss)
                         bce          = reduce_tensor(bce)
                         kld          = reduce_tensor(kld)
@@ -557,8 +557,8 @@ class VAEShell():
                     else:
                         isometry_loss = torch.tensor(0.0)
 
-                    # perform all reduce if using 'gpu' hardware
-                    if self.params['HARDWARE'] == 'gpu':
+                    # perform all reduce if distributed training
+                    if self.params['DDP']:
                         loss_reduced = reduce_tensor(loss)
                         bce          = reduce_tensor(bce)
                         kld          = reduce_tensor(kld)
