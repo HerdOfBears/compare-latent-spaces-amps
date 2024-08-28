@@ -121,7 +121,7 @@ class VAEShell():
         self.vocab_size = len(self.current_state['params']['CHAR_DICT'].keys())
         self.pad_idx   = self.current_state['params']['CHAR_DICT']['_']
         state_dict     = self.current_state['model_state_dict']
-        seloptimizer_state_dictf.name      = self.current_state['name']
+        self.name      = self.current_state['name']
         self.n_epochs  = self.current_state['epoch']
         self.best_loss = self.current_state['best_loss']
         #This is the last key in the outer dict. Need to match the values from the ckpt.
@@ -379,7 +379,9 @@ class VAEShell():
                         loss     = reduce_tensor(loss)
                         bce      = reduce_tensor(bce)
                         kld      = reduce_tensor(kld)
-                        prop_bce = reduce_tensor(prop_bce)
+                        if prop_bce.device.type == 'cuda':
+                            prop_bce = reduce_tensor(prop_bce)
+
                         if use_isometry_loss:
                             isometry_loss = reduce_tensor(isometry_loss)
                         else:
@@ -560,7 +562,9 @@ class VAEShell():
                         loss     = reduce_tensor(loss)
                         bce      = reduce_tensor(bce)
                         kld      = reduce_tensor(kld)
-                        prop_bce = reduce_tensor(prop_bce)
+                        if prop_bce.device.type == 'cuda':
+                            prop_bce = reduce_tensor(prop_bce)
+                        
                         if use_isometry_loss:
                             isometry_loss = reduce_tensor(isometry_loss)
                         else:
