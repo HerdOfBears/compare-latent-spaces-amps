@@ -9,6 +9,7 @@ import numpy as np
 import torch
 import os
 import pickle as pkl
+import logging
 
 from transvae import trans_models
 from transvae.transformer_models import TransVAE
@@ -112,7 +113,8 @@ class OptimizeInReducedLatentSpace():
             "candidates":[],
             "candidate_scores":[],
             "best_objective_values":[],
-            "best_sequences":[]
+            "best_sequences":[],
+            'params':params
         }
 
     def decode_seq(self, encoded_seq:list[int]) -> str:
@@ -251,8 +253,8 @@ class OptimizeInReducedLatentSpace():
                 candidate_sequences = candidate_decoded
             else:
                 candidate_sequences = []
-                for i in range(candidate_decoded.shape[0]):
-                    candidate_sequences.append(self.decode_seq(candidate_decoded[i].flatten().numpy()))
+                for j in range(candidate_decoded.shape[0]):
+                    candidate_sequences.append(self.decode_seq(candidate_decoded[j].flatten().numpy()))
 
             if verbose:
                 print(f"candiate sequences: {candidate_sequences}")
@@ -303,6 +305,11 @@ class OptimizeInReducedLatentSpace():
             self.optimization_results["candidate_scores"].append(prediction_score)
             self.optimization_results["best_objective_values"].append(best_score)
             self.optimization_results["best_sequences"].append(best_seq)
+
+            if i%100==0:
+                _run = self.params.get("run", "default")
+                with open(f"optimization_results_run{_run}.pkl", "wb") as f:
+                    pkl.dump(self.optimization_results, f)
 
         print("Optimization complete")
 

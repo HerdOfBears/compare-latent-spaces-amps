@@ -5,6 +5,7 @@ import pickle as pkl
 import logging
 import time
 import argparse
+import sys
 
 from joblib import Parallel, delayed
 from sklearn.decomposition import PCA
@@ -70,10 +71,11 @@ def make_nonlinear_svr(prediction_target:str):
 
 def run_optimization(i, params, model, nonlinear_svr, pca, char_dict, minimize_or_maximize, train_X, train_Y):
     logging.info(f"Run {i+1}/{params['n_bo_runs']}")
-
+    dupl_params = params.copy()
+    dupl_params["run"] = i
     # Initialize optimizer
     _optimizer = OptimizeInReducedLatentSpace(
-        model, nonlinear_svr, pca, char_dict, minimize_or_maximize_score=minimize_or_maximize
+        model, nonlinear_svr, pca, char_dict, minimize_or_maximize_score=minimize_or_maximize, params=dupl_params
     )
 
     # Run optimization loop
@@ -106,10 +108,15 @@ def main(data_X, data_Y, params):
         with torch.no_grad():
             z, mu, logvar = model.calc_mems(data_X.to_numpy(), log=False,save=False)
     else:
+        print("Using ESM model")
+        print(f"{data_X.shape[0]} sequences, {data_X[:5]}")
+        print(list(data_X.to_numpy().flatten()))
         logging.info("loading ESM model...")
         model = EsmWrapper(params)
         with torch.no_grad():
-            mu = model.encode(list(data_X.to_numpy().flatten()))
+            mu = model.encode(list(data_X.to_numpy().flatten()[:2]))
+        print(f"mu shape: {mu.shape}")
+        sys.exit()
 
     #########################################
     # build a dimensionality reduction method
@@ -192,7 +199,7 @@ if __name__ == '__main__':
         from transvae.helpers_esm import EsmWrapper
 
         # Define model paths
-        model_path = "esm2/"
+        model_path = "esm2/esm_files/"
         model_name_or_path     = model_path
         tokenizer_name_or_path = model_path
 
