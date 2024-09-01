@@ -387,7 +387,9 @@ class VAEShell():
                         else:
                             isometry_loss = torch.tensor(0.0)
                     
-                    avg_losses.append(      loss_reduced.item())
+                        avg_losses.append(  loss_reduced.item())
+                    else:
+                        avg_losses.append(          loss.item())
                     avg_bce_losses.append(           bce.item())
                     avg_kld_losses.append(           kld.item())
                     avg_prop_bce_losses.append( prop_bce.item())
@@ -402,7 +404,7 @@ class VAEShell():
                     self.model.zero_grad()
                 stop_run_time = perf_counter()
                 run_time = round(stop_run_time - start_run_time, 5)
-                avg_loss = np.mean(avg_losses)
+                avg_loss = np.mean(    avg_losses)
                 avg_bce  = np.mean(avg_bce_losses)
                 if len(avg_bcemask_losses) == 0:
                     avg_bcemask = 0
@@ -570,7 +572,9 @@ class VAEShell():
                         else:
                             isometry_loss = torch.tensor(0.0)
 
-                    avg_losses.append(     loss_reduced.item())
+                        avg_losses.append(     loss_reduced.item())
+                    else:
+                        avg_losses.append(         loss.item())
                     avg_bce_losses.append(          bce.item())
                     avg_kld_losses.append(          kld.item())
                     avg_prop_bce_losses.append(prop_bce.item())
@@ -578,8 +582,8 @@ class VAEShell():
 
                 stop_run_time = perf_counter()
                 run_time = round(stop_run_time - start_run_time, 5)
-                avg_loss = np.mean(avg_losses)
-                avg_bce = np.mean(avg_bce_losses)
+                avg_loss = np.mean(    avg_losses)
+                avg_bce  = np.mean(avg_bce_losses)
                 if len(avg_bcemask_losses) == 0:
                     avg_bcemask = 0
                 else:

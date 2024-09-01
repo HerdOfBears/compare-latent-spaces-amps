@@ -189,4 +189,6 @@ if __name__ == '__main__':
         else:
             raise ValueError("prediction_types must be a list of strings or a list of lists of characters")
         args.prediction_types = fixed_prediction_types
+
+    print(f"{fixed_prediction_types=}")
     train(args, comet_experiment=experiment)
