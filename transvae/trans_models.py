@@ -268,9 +268,16 @@ class VAEShell():
             prop_losses  = []
             kld_losses   = []
             contrastive_losses = []
-            beta = kl_annealer(epoch)
-            beta_contrastive = contrastive_annealer(epoch)
-            beta_property = property_annealer(epoch+self.n_epochs)
+            if self.loaded_from is not None:
+                # +1 because epoch is 0-indexed, and we don't want to repeat the last
+                # beta value from the previous training session
+                beta = kl_annealer(epoch+1)
+                beta_contrastive = contrastive_annealer(epoch+1)
+                beta_property = property_annealer(epoch+1+self.n_epochs)
+            else:
+                beta = kl_annealer(epoch)
+                beta_contrastive = contrastive_annealer(epoch)
+                beta_property = property_annealer(epoch+self.n_epochs)
 
             for j, data in enumerate(train_iter):
                 avg_losses          = []
