@@ -308,7 +308,8 @@ class OptimizeInReducedLatentSpace():
 
             if i%100==0:
                 _run = self.params.get("run", "default")
-                with open(f"optimization_results_run{_run}.pkl", "wb") as f:
+                _name = self.params.get("chkpt_fpath", "default").split('/')[1]
+                with open(f"optimization_results_{_name}_run{_run}.pkl", "wb") as f:
                     pkl.dump(self.optimization_results, f)
 
         print("Optimization complete")
