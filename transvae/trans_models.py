@@ -236,17 +236,18 @@ class VAEShell():
         
         contrastive_kl_start = 0.01
         property_init = 0.0
+        property_final= 100.0
         _total_epochs = epochs
         if self.n_epochs>0:
             _total_epochs = self.n_epochs + epochs
             _m = (1.0-contrastive_kl_start)/(_total_epochs-self.params["ANNEAL_START"])
             contrastive_kl_start = _m*self.n_epochs + contrastive_kl_start
 
-            property_init = ((1.0-0.0)/(_total_epochs))*self.n_epochs
+            property_init = ((property_final-property_init)/(_total_epochs))*self.n_epochs
         contrastive_annealer = KLAnnealer(contrastive_kl_start, 1.0,
                                           _total_epochs, self.params['ANNEAL_START'])
         
-        property_annealer = KLAnnealer(property_init, 1.0, epochs, 0)
+        property_annealer = KLAnnealer(property_init, property_final, epochs, 0)
         ####################################################################################################
         ### Epoch loop start
         for epoch in range(epochs):
