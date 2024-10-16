@@ -56,6 +56,7 @@ def train(args, comet_experiment=None):
               'd_pp_out': args.d_pp_out,
               'prediction_types': args.prediction_types,
               'save_dir': args.save_dir,
+              "mask_label_percent": args.mask_label_percent,
     }
 
     ### Load data, vocab and token weights
@@ -189,6 +190,10 @@ if __name__ == '__main__':
         else:
             raise ValueError("prediction_types must be a list of strings or a list of lists of characters")
         args.prediction_types = fixed_prediction_types
+
+    if args.mask_label_percent is not None:
+        args.mask_label_percent = float(args.mask_label_percent/100)
+        print(f"{args.mask_label_percent=}")
 
     print(f"{fixed_prediction_types=}")
     train(args, comet_experiment=experiment)

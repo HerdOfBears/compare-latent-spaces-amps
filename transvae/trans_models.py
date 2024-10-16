@@ -172,8 +172,10 @@ class VAEShell():
         torch.backends.cudnn.benchmark = True #optimize run-time for fixed model input size
         structure_predictor = None # DEPRECATED
         ### Prepare data iterators
-        train_data = vae_data_gen(train_mols, self.src_len, self.name, train_props, char_dict=self.params['CHAR_DICT'])
-        val_data   = vae_data_gen(  val_mols, self.src_len, self.name,   val_props, char_dict=self.params['CHAR_DICT'])
+        train_data = vae_data_gen(train_mols, self.src_len, self.name, train_props, 
+                                  char_dict=self.params['CHAR_DICT'], mask_label_percent=self.params['mask_label_percent'])
+        val_data   = vae_data_gen(  val_mols, self.src_len, self.name,   val_props, 
+                                  char_dict=self.params['CHAR_DICT'], mask_label_percent=self.params['mask_label_percent'])
         
         # special input for isometry learning
         if use_isometry_loss:

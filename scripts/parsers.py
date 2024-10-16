@@ -112,6 +112,7 @@ def train_parser():
     parser.add_argument('--test_props_path', default=None, type=str)
     parser.add_argument('--vocab_path', default=None, type=str)
     parser.add_argument('--char_weights_path', default=None, type=str)
+    parser.add_argument('--mask_label_percent', default=None, type=int)
     
     ###############################
     ### Load Parameters
