@@ -81,8 +81,8 @@ def train(args, comet_experiment=None):
             train_props = pd.read_csv(args.train_props_path)
             test_props  = pd.read_csv( args.test_props_path)
 
-            train_props = train_props["log10mic"].to_numpy()
-            test_props  = test_props[ "log10mic"].to_numpy()
+            train_props = train_props["log10mic"].to_numpy().reshape(-1,1)
+            test_props  = test_props[ "log10mic"].to_numpy().reshape(-1,1)
 
             train_props[train_props == 1000.0] = np.nan
             test_props[  test_props == 1000.0] = np.nan

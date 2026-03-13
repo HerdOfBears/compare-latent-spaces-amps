@@ -13,7 +13,7 @@ from sklearn.decomposition import PCA
 from transvae.transformer_models import TransVAE
 from transvae.tvae_util import *
 
-from transvae.optimization import OptimizeInReducedLatentSpace
+from transvae.optimization import OptimizeInReducedLatentSpace, IdentityPCA
 from transvae.mic_svr import NonlinearSVRonPhysicoChemicalProps
 
 def encode_seqs(df, stoi):
@@ -133,7 +133,10 @@ def main(data_X, data_Y, params):
     train_Xs = []
     train_Ys = []
     for i in range(params['n_different_initializations']):
-        _pca = PCA(n_components=N_PCA_COMPONENTS)
+        if params["dimensionality_reduction_method"] == "identity":
+            _pca = IdentityPCA(n_components=N_PCA_COMPONENTS) # IdentityPCA is a dummy class that does nothing
+        else:
+            _pca = PCA(n_components=N_PCA_COMPONENTS)
             
         _pca.fit(mu[i*params['n_initialization_points']:(i+1)*params['n_initialization_points']])
         _pca_mu = _pca.transform(
@@ -284,6 +287,10 @@ if __name__ == '__main__':
     
     params["chkpt_fpath"] = chkpt_fpath
     params['char_dict'] = char_dict
+
+    # add number of init points to output dir name
+    output_dir = output_dir[:-1] if output_dir[-1] == '/' else output_dir
+    output_dir = output_dir + f"{N_INITALIZATION_POINTS}_init_points/"
     params['output_dir'] = output_dir
     
     params["use_esm"] = USE_ESM

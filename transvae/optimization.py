@@ -51,6 +51,17 @@ def decode_seq(encoded_seq, stoi):
     return decoded_seq
 
 
+class IdentityPCA():
+    def __init__(self, n_components):
+        self.n_components = n_components
+    def fit(self, X):
+        return self
+    def transform(self, X):
+        return X
+    def inverse_transform(self, X):
+        return X
+
+
 class OptimizeInReducedLatentSpace():
     def __init__(self, 
                  generative_model, 
