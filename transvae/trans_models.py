@@ -1016,6 +1016,8 @@ class VAEShell():
                             char_dict=self.params['CHAR_DICT'],
                             d_pp_out=self.params["d_pp_out"])
 
+        if data[1] is None:
+            data = data[0]
         data_iter = torch.utils.data.DataLoader(data,
                                                 batch_size=self.params['BATCH_SIZE'],
                                                 shuffle=False, num_workers=0,
